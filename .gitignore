@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Database
+*.db
+*.db-journal
+packages/backend/prisma/migrations/
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+credentials.json
+secrets.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+*.code-workspace
+
+# Server data (managed game servers)
+servers/
+data/
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.bak
+*.backup
+*.orig
+
+# Claude Code / AI
+.claude/
+CLAUDE.md
+PROJECT_BRIEF.md
+
+# Windows reserved names (accidentally created)
+nul
+NUL

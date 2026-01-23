@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Server {
+  id          String   @id @default(uuid())
+  name        String
+  gameType    String
+  status      String   @default("stopped")
+  port        Int      @unique
+  maxPlayers  Int
+  path        String   @unique
+  version     String?
+
+  config      String   @default("{}")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([gameType])
+  @@index([status])
+}
