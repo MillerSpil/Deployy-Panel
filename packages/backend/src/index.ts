@@ -5,9 +5,13 @@ import { PrismaClient } from '@prisma/client';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { logger } from './utils/logger.js';
 import { ServerService } from './services/ServerService.js';
+import { AuthService } from './services/AuthService.js';
 import { createServerRouter } from './routes/servers.routes.js';
+import { createAuthRouter } from './routes/auth.routes.js';
+import { createAuthMiddleware } from './middleware/auth.js';
 import { setupWebSocketHandlers } from './websocket/handlers.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import type { ClientToServerEvents, ServerToClientEvents } from '@deployy/shared';
@@ -21,27 +25,38 @@ async function main() {
   logger.info('Database connected');
 
   const serverService = new ServerService(prisma, SERVERS_BASE_PATH);
+  const authService = new AuthService(prisma);
 
   const app = express();
   const httpServer = createServer(app);
 
+  // Support multiple frontend ports for development
+  const FRONTEND_URLS = (process.env.FRONTEND_URL || 'http://localhost:5173')
+    .split(',')
+    .map((url) => url.trim());
+
+  const corsOrigin = FRONTEND_URLS.length === 1 ? FRONTEND_URLS[0] : FRONTEND_URLS;
+
   const io = new SocketServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: corsOrigin,
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
   serverService.setSocketServer(io);
-  setupWebSocketHandlers(io, serverService);
+  setupWebSocketHandlers(io, serverService, authService);
 
   app.use(helmet());
   app.use(
     cors({
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: corsOrigin,
+      credentials: true,
     })
   );
   app.use(express.json());
+  app.use(cookieParser());
 
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -54,7 +69,12 @@ async function main() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  app.use('/api/servers', createServerRouter(serverService));
+  // Auth routes (public)
+  app.use('/api/auth', createAuthRouter(authService));
+
+  // Protected server routes
+  const requireAuth = createAuthMiddleware(authService);
+  app.use('/api/servers', requireAuth, createServerRouter(serverService));
 
   app.use(errorHandler);
 

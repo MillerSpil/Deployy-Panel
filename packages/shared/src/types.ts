@@ -45,3 +45,26 @@ export interface GameConfig {
   MaxViewRadius: number;
   [key: string]: unknown;
 }
+
+// Auth types
+export interface User {
+  id: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
+export interface LoginResponse {
+  user: AuthUser;
+  message: string;
+}
+
+export interface AuthStatus {
+  authenticated: boolean;
+  user?: AuthUser;
+}

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import type { Server as SocketServer } from 'socket.io';
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import type { Server, InstallConfig, ServerToClientEvents, ClientToServerEvents } from '@deployy/shared';
 import { AdapterFactory } from '../adapters/AdapterFactory.js';
 import { BaseAdapter } from '../adapters/BaseAdapter.js';
@@ -114,19 +115,35 @@ export class ServerService {
     }
 
     this.adapters.delete(id);
-    await this.prisma.server.delete({ where: { id } });
 
-    // Delete server folder from filesystem
+    // Delete server folder from filesystem BEFORE removing from database
+    // This ensures we still have the path info if deletion fails
     if (server.path) {
       try {
-        await fs.rm(server.path, { recursive: true, force: true });
-        logger.info(`Server folder deleted: ${server.path}`);
+        // Normalize the path for cross-platform compatibility
+        const normalizedPath = server.path.replace(/\//g, path.sep);
+        logger.info(`Attempting to delete server folder: ${normalizedPath}`);
+
+        // Check if path exists before trying to delete
+        try {
+          await fs.access(normalizedPath);
+          await fs.rm(normalizedPath, { recursive: true, force: true });
+          logger.info(`Server folder deleted successfully: ${normalizedPath}`);
+        } catch (accessError: any) {
+          if (accessError.code === 'ENOENT') {
+            logger.info(`Server folder already deleted or never existed: ${normalizedPath}`);
+          } else {
+            throw accessError;
+          }
+        }
       } catch (error) {
-        logger.warn(`Failed to delete server folder: ${server.path}`, error);
+        logger.error({ error, path: server.path }, `Failed to delete server folder`);
+        // Don't throw - continue with database deletion
       }
     }
 
-    logger.info(`Server deleted: ${id}`);
+    await this.prisma.server.delete({ where: { id } });
+    logger.info(`Server deleted from database: ${id}`);
   }
 
   async startServer(id: string): Promise<void> {

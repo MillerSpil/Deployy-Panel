@@ -1,14 +1,45 @@
 import type { Server as SocketServer } from 'socket.io';
+import cookie from 'cookie';
 import type { ServerService } from '../services/ServerService.js';
-import type { ClientToServerEvents, ServerToClientEvents } from '@deployy/shared';
+import type { AuthService } from '../services/AuthService.js';
+import type { ClientToServerEvents, ServerToClientEvents, AuthUser } from '@deployy/shared';
 import { logger } from '../utils/logger.js';
+
+// Extend socket data type
+declare module 'socket.io' {
+  interface Socket {
+    data: {
+      user?: AuthUser;
+    };
+  }
+}
 
 export const setupWebSocketHandlers = (
   io: SocketServer<ClientToServerEvents, ServerToClientEvents>,
-  serverService: ServerService
+  serverService: ServerService,
+  authService: AuthService
 ) => {
+  // Socket.IO middleware for authentication
+  io.use(async (socket, next) => {
+    try {
+      const cookies = cookie.parse(socket.handshake.headers.cookie || '');
+      const token = cookies.auth_token;
+
+      if (!token) {
+        return next(new Error('Authentication required'));
+      }
+
+      const user = await authService.verifyToken(token);
+      socket.data.user = user;
+      next();
+    } catch (error) {
+      logger.warn('Socket auth failed');
+      next(new Error('Authentication failed'));
+    }
+  });
+
   io.on('connection', (socket) => {
-    logger.info(`Client connected: ${socket.id}`);
+    logger.info({ userId: socket.data.user?.id }, `Client connected: ${socket.id}`);
 
     socket.on('subscribe:server', ({ serverId }) => {
       logger.info(`Client ${socket.id} subscribing to server ${serverId}`);

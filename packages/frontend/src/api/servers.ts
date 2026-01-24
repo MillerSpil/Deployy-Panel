@@ -6,7 +6,7 @@ export const serversApi = {
 
   get: (id: string) => apiRequest<Server>(`/servers/${id}`),
 
-  create: (data: { name: string; gameType: string; port: number; maxPlayers: number }) =>
+  create: (data: { name: string; gameType: string; path: string; port: number; maxPlayers: number }) =>
     apiRequest<Server>('/servers', {
       method: 'POST',
       body: JSON.stringify(data),

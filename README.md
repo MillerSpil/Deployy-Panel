@@ -7,6 +7,7 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 - **Multi-Server Management** - Create and manage multiple game servers from a single dashboard
 - **Real-Time Console** - Live server logs with ANSI color support and command input
 - **WebSocket Updates** - Instant status updates across all connected clients
+- **Secure Authentication** - JWT-based auth with HTTP-only cookies, bcrypt password hashing
 - **Cross-Platform** - Works on Windows and Linux
 - **Game Adapters** - Extensible architecture for adding new game support
 - **Dark Theme** - Modern, eye-friendly interface
@@ -89,7 +90,19 @@ deployy-panel/
 
 ## API Endpoints
 
-### Servers
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/auth/setup-status` | Check if initial setup is needed |
+| POST | `/api/auth/register` | Create admin account (first-time only) |
+| POST | `/api/auth/login` | Login and receive auth cookie |
+| POST | `/api/auth/logout` | Logout and clear auth cookie |
+| GET | `/api/auth/me` | Get current authenticated user |
+
+### Servers (Protected)
+
+All server endpoints require authentication.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -123,12 +136,38 @@ By default, game servers are installed to:
 
 ### Environment Variables
 
-Create a `.env` file in `packages/backend/`:
+Create a `.env` file in `packages/backend/` (see `.env.example`):
 
 ```env
-PORT=3000
 DATABASE_URL="file:./dev.db"
+PORT=3000
+NODE_ENV=development
+FRONTEND_URL="http://localhost:5173"
+SERVERS_BASE_PATH="C:\\DeployyServers"
+JWT_SECRET="your-secret-key-minimum-32-characters"
+JWT_EXPIRATION="24h"
 ```
+
+**Important:** Generate a secure JWT secret:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+## Authentication
+
+Deployy Panel uses JWT-based authentication with HTTP-only cookies for security.
+
+### Initial Setup
+
+On first run, you'll be redirected to create an admin account. This is a single-user application - only one account can be registered.
+
+### Security Features
+
+- Passwords hashed with bcrypt (14 rounds)
+- JWT tokens stored in HTTP-only cookies (not accessible via JavaScript)
+- 24-hour token expiration
+- Rate limiting on auth endpoints (5 requests per 15 minutes)
+- All API routes and WebSocket connections require authentication
 
 ## Supported Games
 
@@ -163,7 +202,7 @@ pnpm lint         # Run ESLint
 
 ## Roadmap
 
-- [ ] User authentication
+- [x] User authentication
 - [ ] Multi-user support
 - [ ] Backup system
 - [ ] Mod manager

@@ -1,2 +1,4 @@
 packages:
-  - 'packages/*'
+  - packages/*
+
+onlyBuiltDependencies: '[''bcrypt'', ''@prisma/client'', ''@prisma/engines'', ''prisma'', ''esbuild'']'
