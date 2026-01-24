@@ -44,6 +44,17 @@ export class ServerService {
     return servers.map(this.transformServer);
   }
 
+  async listServersByIds(ids: string[]): Promise<Server[]> {
+    if (ids.length === 0) return [];
+
+    const servers = await this.prisma.server.findMany({
+      where: { id: { in: ids } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return servers.map(this.transformServer);
+  }
+
   async getServer(id: string): Promise<Server | null> {
     const server = await this.prisma.server.findUnique({ where: { id } });
     return server ? this.transformServer(server) : null;
@@ -137,7 +148,7 @@ export class ServerService {
           }
         }
       } catch (error) {
-        logger.error({ error, path: server.path }, `Failed to delete server folder`);
+        logger.error('Failed to delete server folder', { error, path: server.path });
         // Don't throw - continue with database deletion
       }
     }

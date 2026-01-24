@@ -6,6 +6,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ServerPage } from './pages/ServerPage';
 import { LoginPage } from './pages/LoginPage';
 import { SetupPage } from './pages/SetupPage';
+import { UsersPage } from './pages/admin/UsersPage';
+import { RolesPage } from './pages/admin/RolesPage';
 
 function AppRoutes() {
   const { needsSetup, user, loading } = useAuth();
@@ -50,6 +52,28 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <ServerPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin routes */}
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <UsersPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/roles"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <RolesPage />
             </Layout>
           </ProtectedRoute>
         }

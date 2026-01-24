@@ -42,9 +42,9 @@ ehthumbs.db
 *.sublime-*
 *.code-workspace
 
-# Server data (managed game servers)
-servers/
-data/
+# Server data (managed game servers - root level only)
+/servers/
+/data/
 
 # Temporary files
 temp/

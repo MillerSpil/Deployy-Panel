@@ -66,5 +66,80 @@ export interface LoginResponse {
 
 export interface AuthStatus {
   authenticated: boolean;
-  user?: AuthUser;
+  user?: AuthUserWithPermissions;
+}
+
+// Panel-wide permissions
+export const PANEL_PERMISSIONS = [
+  'panel.admin',
+  'servers.create',
+  'servers.viewAll',
+  'users.view',
+  'users.create',
+  'users.edit',
+  'users.delete',
+  'roles.view',
+  'roles.create',
+  'roles.edit',
+  'roles.delete',
+] as const;
+
+export type PanelPermission = (typeof PANEL_PERMISSIONS)[number];
+
+// Per-server permission levels (ordered by privilege, lowest to highest)
+export const SERVER_PERMISSION_LEVELS = ['viewer', 'operator', 'admin', 'owner'] as const;
+export type ServerPermissionLevel = (typeof SERVER_PERMISSION_LEVELS)[number];
+
+// Minimum permission level required for each server action
+export const SERVER_ACTION_PERMISSIONS: Record<string, ServerPermissionLevel> = {
+  view: 'viewer',
+  viewConsole: 'viewer',
+  viewLogs: 'viewer',
+  start: 'operator',
+  stop: 'operator',
+  restart: 'operator',
+  sendCommand: 'operator',
+  editSettings: 'admin',
+  manageFiles: 'admin',
+  manageBackups: 'admin',
+  manageAccess: 'owner',
+  delete: 'owner',
+};
+
+// Role model
+export interface Role {
+  id: string;
+  name: string;
+  description: string | null;
+  permissions: PanelPermission[];
+  isSystem: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Server access entry
+export interface ServerAccess {
+  id: string;
+  userId: string;
+  serverId: string;
+  permissionLevel: ServerPermissionLevel;
+  createdAt: Date;
+  user?: Pick<User, 'id' | 'email'>;
+}
+
+// User with role info
+export interface UserWithRole extends User {
+  role: Role | null;
+}
+
+// Extended AuthUser with permissions for JWT and context
+export interface AuthUserWithPermissions extends AuthUser {
+  permissions: PanelPermission[];
+  roleId: string | null;
+  roleName: string | null;
+}
+
+// Server with user's permission level
+export interface ServerWithPermissions extends Server {
+  userPermissionLevel: ServerPermissionLevel | null;
 }

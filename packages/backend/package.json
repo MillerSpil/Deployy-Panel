@@ -9,7 +9,11 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
     "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true})\""
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@deployy/shared": "workspace:*",

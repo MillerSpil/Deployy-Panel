@@ -19,7 +19,7 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  logger.error({ error, path: req.path, method: req.method }, 'Request error');
+  logger.error('Request error', { error, path: req.path, method: req.method });
 
   if (error instanceof ZodError) {
     return res.status(400).json({

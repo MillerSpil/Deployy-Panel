@@ -1,10 +1,10 @@
 import { apiRequest } from './client';
-import type { Server } from '@deployy/shared';
+import type { Server, ServerWithPermissions } from '@deployy/shared';
 
 export const serversApi = {
   list: () => apiRequest<Server[]>('/servers'),
 
-  get: (id: string) => apiRequest<Server>(`/servers/${id}`),
+  get: (id: string) => apiRequest<ServerWithPermissions>(`/servers/${id}`),
 
   create: (data: { name: string; gameType: string; path: string; port: number; maxPlayers: number }) =>
     apiRequest<Server>('/servers', {

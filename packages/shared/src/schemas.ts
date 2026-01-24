@@ -84,3 +84,70 @@ export const loginSchema = z.object({
   email: z.string().email('Invalid email address').min(1, 'Email is required'),
   password: z.string().min(1, 'Password is required'),
 });
+
+// Role schemas
+const ROLE_NAME_REGEX = /^[a-zA-Z0-9\s\-_]+$/;
+
+export const createRoleSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Role name is required')
+    .max(50, 'Role name must be 50 characters or less')
+    .regex(ROLE_NAME_REGEX, 'Role name contains invalid characters'),
+  description: z.string().max(255, 'Description is too long').optional(),
+  permissions: z.array(z.string()).default([]),
+});
+
+export const updateRoleSchema = z.object({
+  name: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(ROLE_NAME_REGEX, 'Role name contains invalid characters')
+    .optional(),
+  description: z.string().max(255).nullable().optional(),
+  permissions: z.array(z.string()).optional(),
+});
+
+export const roleIdSchema = z.string().uuid('Invalid role ID');
+
+// User management schemas
+export const createUserSchema = z.object({
+  email: z
+    .string()
+    .email('Invalid email address')
+    .min(1, 'Email is required')
+    .max(255, 'Email is too long'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(72, 'Password is too long')
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+    ),
+  roleId: z.string().uuid('Invalid role ID').optional(),
+});
+
+export const updateUserSchema = z.object({
+  email: z.string().email('Invalid email address').min(1).max(255).optional(),
+  roleId: z.string().uuid('Invalid role ID').nullable().optional(),
+});
+
+export const userIdSchema = z.string().uuid('Invalid user ID');
+
+// Server access schemas
+export const grantServerAccessSchema = z.object({
+  userId: z.string().uuid('Invalid user ID'),
+  permissionLevel: z.enum(['viewer', 'operator', 'admin', 'owner']),
+});
+
+export const updateServerAccessSchema = z.object({
+  permissionLevel: z.enum(['viewer', 'operator', 'admin', 'owner']),
+});
+
+export const serverAccessIdSchema = z.string().uuid('Invalid access ID');
+
+export const transferOwnershipSchema = z.object({
+  newOwnerId: z.string().uuid('Invalid user ID'),
+});

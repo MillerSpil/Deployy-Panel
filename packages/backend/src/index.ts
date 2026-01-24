@@ -9,9 +9,17 @@ import cookieParser from 'cookie-parser';
 import { logger } from './utils/logger.js';
 import { ServerService } from './services/ServerService.js';
 import { AuthService } from './services/AuthService.js';
+import { PermissionService } from './services/PermissionService.js';
+import { RoleService } from './services/RoleService.js';
+import { UserService } from './services/UserService.js';
+import { ServerAccessService } from './services/ServerAccessService.js';
 import { createServerRouter } from './routes/servers.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
+import { createRolesRouter } from './routes/roles.routes.js';
+import { createUsersRouter } from './routes/users.routes.js';
+import { createServerAccessRouter } from './routes/serverAccess.routes.js';
 import { createAuthMiddleware } from './middleware/auth.js';
+import { createPermissionMiddleware } from './middleware/permissions.js';
 import { setupWebSocketHandlers } from './websocket/handlers.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import type { ClientToServerEvents, ServerToClientEvents } from '@deployy/shared';
@@ -24,8 +32,13 @@ async function main() {
   await prisma.$connect();
   logger.info('Database connected');
 
+  // Initialize services
   const serverService = new ServerService(prisma, SERVERS_BASE_PATH);
   const authService = new AuthService(prisma);
+  const permissionService = new PermissionService(prisma);
+  const roleService = new RoleService(prisma);
+  const userService = new UserService(prisma);
+  const accessService = new ServerAccessService(prisma);
 
   const app = express();
   const httpServer = createServer(app);
@@ -46,7 +59,7 @@ async function main() {
   });
 
   serverService.setSocketServer(io);
-  setupWebSocketHandlers(io, serverService, authService);
+  setupWebSocketHandlers(io, serverService, authService, permissionService);
 
   app.use(helmet());
   app.use(
@@ -72,9 +85,27 @@ async function main() {
   // Auth routes (public)
   app.use('/api/auth', createAuthRouter(authService));
 
-  // Protected server routes
+  // Protected routes setup
   const requireAuth = createAuthMiddleware(authService);
-  app.use('/api/servers', requireAuth, createServerRouter(serverService));
+  const permissions = createPermissionMiddleware(permissionService);
+
+  // Server routes with permission filtering
+  app.use(
+    '/api/servers',
+    requireAuth,
+    createServerRouter(serverService, permissionService, accessService, permissions)
+  );
+
+  // Server access routes (nested under servers)
+  app.use(
+    '/api/servers/:serverId/access',
+    requireAuth,
+    createServerAccessRouter(accessService, permissions)
+  );
+
+  // Admin routes
+  app.use('/api/roles', requireAuth, createRolesRouter(roleService, permissions));
+  app.use('/api/users', requireAuth, createUsersRouter(userService, permissions));
 
   app.use(errorHandler);
 
@@ -100,6 +131,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  logger.error({ error }, 'Fatal error during startup');
+  logger.error('Fatal error during startup', { error });
   process.exit(1);
 });

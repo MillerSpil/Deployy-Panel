@@ -78,7 +78,7 @@ export class HytaleAdapter extends BaseAdapter {
         version: config.version || 'unknown',
       };
     } catch (error) {
-      logger.error({ error }, 'Failed to install Hytale server');
+      logger.error('Failed to install Hytale server', { error });
       return {
         success: false,
         path: config.installPath,

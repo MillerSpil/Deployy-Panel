@@ -15,7 +15,7 @@ const authRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-export const createAuthRouter = (authService: AuthService) => {
+export const createAuthRouter = (authService: AuthService): Router => {
   const router = Router();
   const requireAuth = createAuthMiddleware(authService);
 

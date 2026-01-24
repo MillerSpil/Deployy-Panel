@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
-import type { AuthUser } from '@deployy/shared';
+import type { AuthUser, AuthUserWithPermissions, PanelPermission } from '@deployy/shared';
 
 const BCRYPT_ROUNDS = 14;
 
@@ -21,7 +21,7 @@ export class AuthService {
   }
 
   async register(email: string, password: string): Promise<AuthUser> {
-    // Check if any user exists (single-user setup)
+    // Check if any user exists (single-user setup for self-hosted)
     const existingUserCount = await this.prisma.user.count();
     if (existingUserCount > 0) {
       throw new AppError(403, 'Registration is disabled - user already exists');
@@ -35,6 +35,15 @@ export class AuthService {
       throw new AppError(409, 'Email already registered');
     }
 
+    // For first user, find the Admin role
+    let roleId: string | undefined;
+    const adminRole = await this.prisma.role.findFirst({
+      where: { name: 'Admin', isSystem: true },
+    });
+    if (adminRole) {
+      roleId = adminRole.id;
+    }
+
     // Hash password - NEVER log the password
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
@@ -42,10 +51,11 @@ export class AuthService {
       data: {
         email: email.toLowerCase(),
         passwordHash,
+        roleId,
       },
     });
 
-    logger.info({ userId: user.id }, 'User registered');
+    logger.info('User registered', { userId: user.id, assignedRole: roleId ? 'Admin' : 'none' });
 
     return { id: user.id, email: user.email };
   }
@@ -57,23 +67,24 @@ export class AuthService {
 
     if (!user) {
       // Use same message to prevent email enumeration
-      logger.warn({ email: email.toLowerCase() }, 'Login attempt for non-existent user');
+      logger.warn('Login attempt for non-existent user', { email: email.toLowerCase() });
       throw new AppError(401, 'Invalid email or password');
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      logger.warn({ userId: user.id }, 'Invalid password attempt');
+      logger.warn('Invalid password attempt', { userId: user.id });
       throw new AppError(401, 'Invalid email or password');
     }
 
+    const signOptions: SignOptions = { expiresIn: this.jwtExpiration as `${number}${'s' | 'm' | 'h' | 'd'}` | number };
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       this.jwtSecret,
-      { expiresIn: this.jwtExpiration }
+      signOptions
     );
 
-    logger.info({ userId: user.id }, 'User logged in');
+    logger.info('User logged in', { userId: user.id });
 
     return {
       user: { id: user.id, email: user.email },
@@ -81,20 +92,31 @@ export class AuthService {
     };
   }
 
-  async verifyToken(token: string): Promise<AuthUser> {
+  async verifyToken(token: string): Promise<AuthUserWithPermissions> {
     try {
       const decoded = jwt.verify(token, this.jwtSecret) as { userId: string; email: string };
 
-      // Verify user still exists
+      // Verify user still exists and get role info
       const user = await this.prisma.user.findUnique({
         where: { id: decoded.userId },
+        include: { role: true },
       });
 
       if (!user) {
         throw new AppError(401, 'User not found');
       }
 
-      return { id: user.id, email: user.email };
+      const permissions: PanelPermission[] = user.role
+        ? JSON.parse(user.role.permissions)
+        : [];
+
+      return {
+        id: user.id,
+        email: user.email,
+        permissions,
+        roleId: user.roleId,
+        roleName: user.role?.name || null,
+      };
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError(401, 'Invalid or expired token');

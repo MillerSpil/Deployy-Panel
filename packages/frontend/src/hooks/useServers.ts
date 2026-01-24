@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { serversApi } from '../api/servers';
 import { useSocket } from './useSocket';
-import type { Server } from '@deployy/shared';
+import type { Server, ServerStatus } from '@deployy/shared';
 
 export function useServers() {
   const [servers, setServers] = useState<Server[]>([]);
@@ -32,7 +32,9 @@ export function useServers() {
     const handleStatusUpdate = (data: { serverId: string; status: string }) => {
       setServers((prev) =>
         prev.map((server) =>
-          server.id === data.serverId ? { ...server, status: data.status } : server
+          server.id === data.serverId
+            ? { ...server, status: data.status as ServerStatus }
+            : server
         )
       );
     };

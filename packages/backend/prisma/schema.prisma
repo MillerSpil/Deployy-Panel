@@ -7,14 +7,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions String   @default("[]")
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@index([name])
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
   passwordHash String
+  roleId       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  role         Role?          @relation(fields: [roleId], references: [id])
+  serverAccess ServerAccess[]
+
   @@index([email])
+  @@index([roleId])
 }
 
 model Server {
@@ -32,6 +51,23 @@ model Server {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  serverAccess ServerAccess[]
+
   @@index([gameType])
   @@index([status])
+}
+
+model ServerAccess {
+  id              String   @id @default(uuid())
+  userId          String
+  serverId        String
+  permissionLevel String
+  createdAt       DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serverId])
+  @@index([userId])
+  @@index([serverId])
 }

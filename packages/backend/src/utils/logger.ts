@@ -12,8 +12,8 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, error,
     if (error instanceof Error) {
       log += ` - ${error.message}`;
       if (error.stack) log += `\n${error.stack}`;
-    } else if (typeof error === 'object' && error.message) {
-      log += ` - ${error.message}`;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      log += ` - ${(error as { message: string }).message}`;
     } else {
       log += ` - ${JSON.stringify(error)}`;
     }

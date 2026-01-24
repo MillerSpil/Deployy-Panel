@@ -1,23 +1,45 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { authApi } from '../api/auth';
-import type { AuthUser } from '@deployy/shared';
+import type { AuthUserWithPermissions, PanelPermission } from '@deployy/shared';
 
 interface AuthContextType {
-  user: AuthUser | null;
+  user: AuthUserWithPermissions | null;
   loading: boolean;
   needsSetup: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  hasPermission: (permission: PanelPermission) => boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUserWithPermissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
+
+  const hasPermission = useCallback(
+    (permission: PanelPermission): boolean => {
+      if (!user) return false;
+      // panel.admin bypasses all permission checks
+      if (user.permissions.includes('panel.admin')) return true;
+      return user.permissions.includes(permission);
+    },
+    [user]
+  );
+
+  const isAdmin = useMemo(() => hasPermission('panel.admin'), [hasPermission]);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -51,13 +73,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [checkAuth]);
 
   const login = async (email: string, password: string) => {
-    const { user: authUser } = await authApi.login(email, password);
-    setUser(authUser);
+    await authApi.login(email, password);
+    // Refresh auth to get full user with permissions
+    await checkAuth();
     setNeedsSetup(false);
   };
 
   const register = async (email: string, password: string) => {
-    const { user: authUser } = await authApi.register(email, password);
+    await authApi.register(email, password);
     // After registration, log in automatically
     await login(email, password);
   };
@@ -68,7 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, needsSetup, login, register, logout, checkAuth }}>
+    <AuthContext.Provider
+      value={{ user, loading, needsSetup, login, register, logout, checkAuth, hasPermission, isAdmin }}
+    >
       {children}
     </AuthContext.Provider>
   );

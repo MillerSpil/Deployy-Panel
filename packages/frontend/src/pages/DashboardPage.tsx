@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useServers } from '@/hooks/useServers';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ServerList } from '@/components/servers/ServerList';
 import { CreateServerModal } from '@/components/servers/CreateServerModal';
 import { Button } from '@/components/common/Button';
@@ -9,6 +10,7 @@ import { serversApi } from '@/api/servers';
 export function DashboardPage() {
   const navigate = useNavigate();
   const { servers, loading, error, refetch } = useServers();
+  const { canCreateServer } = usePermissions();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleStart = async (id: string) => {
@@ -53,7 +55,9 @@ export function DashboardPage() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-slate-100">Servers</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>Create Server</Button>
+        {canCreateServer && (
+          <Button onClick={() => setIsCreateModalOpen(true)}>Create Server</Button>
+        )}
       </div>
 
       <ServerList servers={servers} onStart={handleStart} onStop={handleStop} onView={handleView} />

@@ -5,9 +5,11 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 ## Features
 
 - **Multi-Server Management** - Create and manage multiple game servers from a single dashboard
+- **Roles & Permissions** - Granular access control with panel-wide roles and per-server permissions
 - **Real-Time Console** - Live server logs with ANSI color support and command input
 - **WebSocket Updates** - Instant status updates across all connected clients
 - **Secure Authentication** - JWT-based auth with HTTP-only cookies, bcrypt password hashing
+- **Multi-User Support** - Create multiple users with different roles and access levels
 - **Cross-Platform** - Works on Windows and Linux
 - **Game Adapters** - Extensible architecture for adding new game support
 - **Dark Theme** - Modern, eye-friendly interface
@@ -40,7 +42,10 @@ pnpm install
 cd packages/backend
 pnpm prisma generate
 pnpm prisma db push
+pnpm prisma db seed
 ```
+
+This creates the database schema and seeds default roles (Admin, Moderator, User).
 
 ### 3. Start Development Servers
 
@@ -102,18 +107,47 @@ deployy-panel/
 
 ### Servers (Protected)
 
-All server endpoints require authentication.
+Server endpoints require authentication and appropriate permissions.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/servers` | List all servers |
-| POST | `/api/servers` | Create new server |
-| GET | `/api/servers/:id` | Get server details |
-| DELETE | `/api/servers/:id` | Delete server |
-| POST | `/api/servers/:id/start` | Start server |
-| POST | `/api/servers/:id/stop` | Stop server |
-| POST | `/api/servers/:id/restart` | Restart server |
-| POST | `/api/servers/:id/command` | Send console command |
+| Method | Endpoint | Description | Permission |
+|--------|----------|-------------|------------|
+| GET | `/api/servers` | List accessible servers | Any authenticated |
+| POST | `/api/servers` | Create new server | `servers.create` |
+| GET | `/api/servers/:id` | Get server details | Viewer+ |
+| DELETE | `/api/servers/:id` | Delete server | Owner |
+| POST | `/api/servers/:id/start` | Start server | Operator+ |
+| POST | `/api/servers/:id/stop` | Stop server | Operator+ |
+| POST | `/api/servers/:id/restart` | Restart server | Operator+ |
+
+### Server Access (Protected)
+
+| Method | Endpoint | Description | Permission |
+|--------|----------|-------------|------------|
+| GET | `/api/servers/:id/access` | List access entries | Owner or Admin |
+| POST | `/api/servers/:id/access` | Grant access | Owner or Admin |
+| PATCH | `/api/servers/:id/access/:accessId` | Update access level | Owner or Admin |
+| DELETE | `/api/servers/:id/access/:accessId` | Revoke access | Owner or Admin |
+| POST | `/api/servers/:id/access/transfer-ownership` | Transfer ownership | Owner |
+
+### Users (Protected)
+
+| Method | Endpoint | Description | Permission |
+|--------|----------|-------------|------------|
+| GET | `/api/users` | List all users | `users.view` |
+| GET | `/api/users/:id` | Get user details | `users.view` |
+| POST | `/api/users` | Create user | `users.create` |
+| PATCH | `/api/users/:id` | Update user | `users.edit` |
+| DELETE | `/api/users/:id` | Delete user | `users.delete` |
+
+### Roles (Protected)
+
+| Method | Endpoint | Description | Permission |
+|--------|----------|-------------|------------|
+| GET | `/api/roles` | List all roles | `roles.view` |
+| GET | `/api/roles/:id` | Get role details | `roles.view` |
+| POST | `/api/roles` | Create role | `roles.create` |
+| PATCH | `/api/roles/:id` | Update role | `roles.edit` |
+| DELETE | `/api/roles/:id` | Delete role | `roles.delete` |
 
 ### WebSocket Events
 
@@ -159,7 +193,7 @@ Deployy Panel uses JWT-based authentication with HTTP-only cookies for security.
 
 ### Initial Setup
 
-On first run, you'll be redirected to create an admin account. This is a single-user application - only one account can be registered.
+On first run, you'll be redirected to create an admin account. The first registered user automatically gets the Admin role with full access.
 
 ### Security Features
 
@@ -168,6 +202,46 @@ On first run, you'll be redirected to create an admin account. This is a single-
 - 24-hour token expiration
 - Rate limiting on auth endpoints (5 requests per 15 minutes)
 - All API routes and WebSocket connections require authentication
+
+## Roles & Permissions
+
+Deployy Panel has a two-tier permission system:
+
+### Panel Permissions (Role-based)
+
+Roles grant panel-wide permissions. Default roles:
+
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Full access (`panel.admin`) |
+| **Moderator** | View all servers, view users |
+| **User** | No special permissions (only own servers) |
+
+Available panel permissions:
+- `panel.admin` - Full access, bypasses all permission checks
+- `servers.create` - Create new servers
+- `servers.viewAll` - View all servers (not just own)
+- `users.view`, `users.create`, `users.edit`, `users.delete` - User management
+- `roles.view`, `roles.create`, `roles.edit`, `roles.delete` - Role management
+
+### Server Permissions (Per-server)
+
+Each user can have a different permission level per server:
+
+| Level | Capabilities |
+|-------|--------------|
+| **Owner** | Full control, can delete, manage access, transfer ownership |
+| **Admin** | Manage settings, files, backups |
+| **Operator** | Start, stop, restart, send commands |
+| **Viewer** | View console and logs only |
+
+When you create a server, you automatically become its owner.
+
+### Admin UI
+
+Users with appropriate permissions can access the admin section at `/admin`:
+- **Users page** - Manage user accounts and role assignments
+- **Roles page** - View and manage custom roles (system roles are protected)
 
 ## Supported Games
 
@@ -203,7 +277,7 @@ pnpm lint         # Run ESLint
 ## Roadmap
 
 - [x] User authentication
-- [ ] Multi-user support
+- [x] Multi-user support with roles & permissions
 - [ ] Backup system
 - [ ] Mod manager
 - [ ] Minecraft support

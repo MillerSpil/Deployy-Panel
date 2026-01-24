@@ -2,22 +2,20 @@ import type { Server as SocketServer } from 'socket.io';
 import cookie from 'cookie';
 import type { ServerService } from '../services/ServerService.js';
 import type { AuthService } from '../services/AuthService.js';
-import type { ClientToServerEvents, ServerToClientEvents, AuthUser } from '@deployy/shared';
+import type { PermissionService } from '../services/PermissionService.js';
+import type { ClientToServerEvents, ServerToClientEvents, AuthUserWithPermissions } from '@deployy/shared';
 import { logger } from '../utils/logger.js';
 
-// Extend socket data type
-declare module 'socket.io' {
-  interface Socket {
-    data: {
-      user?: AuthUser;
-    };
-  }
+// Socket data type
+interface SocketData {
+  user?: AuthUserWithPermissions;
 }
 
 export const setupWebSocketHandlers = (
-  io: SocketServer<ClientToServerEvents, ServerToClientEvents>,
+  io: SocketServer<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>,
   serverService: ServerService,
-  authService: AuthService
+  authService: AuthService,
+  permissionService: PermissionService
 ) => {
   // Socket.IO middleware for authentication
   io.use(async (socket, next) => {
@@ -39,10 +37,25 @@ export const setupWebSocketHandlers = (
   });
 
   io.on('connection', (socket) => {
-    logger.info({ userId: socket.data.user?.id }, `Client connected: ${socket.id}`);
+    logger.info(`Client connected: ${socket.id}`, { userId: socket.data.user?.id });
 
-    socket.on('subscribe:server', ({ serverId }) => {
+    socket.on('subscribe:server', async ({ serverId }) => {
       logger.info(`Client ${socket.id} subscribing to server ${serverId}`);
+
+      // Check viewer access before allowing subscription
+      const hasAccess = await permissionService.hasServerPermission(
+        socket.data.user!.id,
+        serverId,
+        'viewer'
+      );
+
+      if (!hasAccess) {
+        socket.emit('error', {
+          message: 'Access denied to this server',
+          code: 'ACCESS_DENIED',
+        });
+        return;
+      }
 
       const adapter = serverService.getAdapter(serverId);
       if (!adapter) {
@@ -83,6 +96,21 @@ export const setupWebSocketHandlers = (
 
     socket.on('command', async ({ serverId, command }) => {
       try {
+        // Check operator access before allowing commands
+        const hasAccess = await permissionService.hasServerPermission(
+          socket.data.user!.id,
+          serverId,
+          'operator'
+        );
+
+        if (!hasAccess) {
+          socket.emit('error', {
+            message: 'Insufficient permissions to send commands',
+            code: 'ACCESS_DENIED',
+          });
+          return;
+        }
+
         const adapter = serverService.getAdapter(serverId);
         if (!adapter) {
           socket.emit('error', {

@@ -1,13 +1,13 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from './errorHandler.js';
 import type { AuthService } from '../services/AuthService.js';
-import type { AuthUser } from '@deployy/shared';
+import type { AuthUserWithPermissions } from '@deployy/shared';
 
 // Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
-      user?: AuthUser;
+      user?: AuthUserWithPermissions;
     }
   }
 }
