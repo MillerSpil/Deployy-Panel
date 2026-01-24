@@ -1,5 +1,11 @@
 import { apiRequest } from './client';
-import type { Server, ServerWithPermissions } from '@deployy/shared';
+import type { Server, ServerWithPermissions, GameConfig } from '@deployy/shared';
+
+export interface ConfigResponse {
+  config: GameConfig;
+  isRunning: boolean;
+  restartRequired?: boolean;
+}
 
 export const serversApi = {
   list: () => apiRequest<Server[]>('/servers'),
@@ -34,4 +40,12 @@ export const serversApi = {
 
   getLogs: (id: string) =>
     apiRequest<{ logs: Array<{ line: string; timestamp: string }> }>(`/servers/${id}/logs`),
+
+  getConfig: (id: string) => apiRequest<ConfigResponse>(`/servers/${id}/config`),
+
+  updateConfig: (id: string, config: GameConfig) =>
+    apiRequest<ConfigResponse>(`/servers/${id}/config`, {
+      method: 'PATCH',
+      body: JSON.stringify(config),
+    }),
 };

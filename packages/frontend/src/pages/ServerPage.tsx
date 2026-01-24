@@ -3,11 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { serversApi } from '@/api/servers';
 import { ServerConsole } from '@/components/servers/ServerConsole';
 import { ServerAccessManager } from '@/components/servers/ServerAccessManager';
+import { ServerConfigEditor } from '@/components/servers/ServerConfigEditor';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/common/Button';
 import { useSocket } from '@/hooks/useSocket';
 import { hasServerPermissionLevel } from '@/hooks/usePermissions';
 import type { ServerWithPermissions, ServerStatus } from '@deployy/shared';
+
+type TabType = 'console' | 'settings' | 'access';
 
 export function ServerPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,11 +18,13 @@ export function ServerPage() {
   const [server, setServer] = useState<ServerWithPermissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('console');
   const socket = useSocket();
 
   // Permission level helpers
   const userLevel = server?.userPermissionLevel;
   const canOperate = hasServerPermissionLevel(userLevel, 'operator');
+  const canManageSettings = hasServerPermissionLevel(userLevel, 'admin');
   const canDelete = hasServerPermissionLevel(userLevel, 'owner');
   const isOwner = userLevel === 'owner';
 
@@ -192,21 +197,81 @@ export function ServerPage() {
         </div>
       </div>
 
-      <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 mb-6">
-        <h2 className="text-xl font-semibold text-slate-100 mb-4">Console</h2>
-        {server.status === 'stopped' ? (
-          <div className="bg-slate-900 rounded-lg p-8 text-center">
-            <p className="text-slate-500">Start the server to view console output</p>
-          </div>
-        ) : (
-          <ServerConsole
-            serverId={server.id}
-            canSendCommands={server.status === 'running' && canOperate}
-          />
-        )}
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-700 mb-6">
+        <nav className="flex gap-4">
+          <TabButton
+            active={activeTab === 'console'}
+            onClick={() => setActiveTab('console')}
+          >
+            Console
+          </TabButton>
+          {canManageSettings && (
+            <TabButton
+              active={activeTab === 'settings'}
+              onClick={() => setActiveTab('settings')}
+            >
+              Settings
+            </TabButton>
+          )}
+          {isOwner && (
+            <TabButton
+              active={activeTab === 'access'}
+              onClick={() => setActiveTab('access')}
+            >
+              Access
+            </TabButton>
+          )}
+        </nav>
       </div>
 
-      {isOwner && <ServerAccessManager serverId={server.id} isOwner={isOwner} />}
+      {/* Tab Content */}
+      {activeTab === 'console' && (
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+          {server.status === 'stopped' ? (
+            <div className="bg-slate-900 rounded-lg p-8 text-center">
+              <p className="text-slate-500">Start the server to view console output</p>
+            </div>
+          ) : (
+            <ServerConsole
+              serverId={server.id}
+              canSendCommands={server.status === 'running' && canOperate}
+            />
+          )}
+        </div>
+      )}
+
+      {activeTab === 'settings' && canManageSettings && (
+        <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+          <h2 className="text-xl font-semibold text-slate-100 mb-4">Server Settings</h2>
+          <ServerConfigEditor serverId={server.id} serverStatus={server.status} />
+        </div>
+      )}
+
+      {activeTab === 'access' && isOwner && (
+        <ServerAccessManager serverId={server.id} isOwner={isOwner} />
+      )}
     </div>
+  );
+}
+
+interface TabButtonProps {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}
+
+function TabButton({ active, onClick, children }: TabButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+        active
+          ? 'text-primary-400 border-primary-400'
+          : 'text-slate-400 border-transparent hover:text-slate-200 hover:border-slate-600'
+      }`}
+    >
+      {children}
+    </button>
   );
 }

@@ -5,6 +5,7 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 ## Features
 
 - **Multi-Server Management** - Create and manage multiple game servers from a single dashboard
+- **Dynamic Server Settings** - Auto-generated config editor based on each game's JSON config
 - **Roles & Permissions** - Granular access control with panel-wide roles and per-server permissions
 - **Real-Time Console** - Live server logs with ANSI color support and command input
 - **WebSocket Updates** - Instant status updates across all connected clients
@@ -118,6 +119,8 @@ Server endpoints require authentication and appropriate permissions.
 | POST | `/api/servers/:id/start` | Start server | Operator+ |
 | POST | `/api/servers/:id/stop` | Stop server | Operator+ |
 | POST | `/api/servers/:id/restart` | Restart server | Operator+ |
+| GET | `/api/servers/:id/config` | Get server config | Admin+ |
+| PATCH | `/api/servers/:id/config` | Update server config | Admin+ |
 
 ### Server Access (Protected)
 
@@ -243,6 +246,20 @@ Users with appropriate permissions can access the admin section at `/admin`:
 - **Users page** - Manage user accounts and role assignments
 - **Roles page** - View and manage custom roles (system roles are protected)
 
+## Dynamic Server Settings
+
+The Settings tab on each server page provides a fully dynamic configuration editor:
+
+- **Auto-generated UI** - Reads the server's `config.json` and generates form fields automatically
+- **Smart type detection** - Booleans show toggles, numbers show number inputs, strings show text inputs
+- **Nested objects** - Displayed as collapsible sections for complex configurations
+- **Arrays** - Add/remove items dynamically with appropriate field types
+- **No hardcoding** - New config options appear automatically when games add them
+- **Restart warning** - Shows alert when server is running and changes require restart
+- **Permission required** - Only users with Admin or Owner server access can edit settings
+
+This means when Hytale or other games update their config format, the UI adapts automatically without code changes.
+
 ## Supported Games
 
 | Game | Status | Notes |
@@ -278,6 +295,7 @@ pnpm lint         # Run ESLint
 
 - [x] User authentication
 - [x] Multi-user support with roles & permissions
+- [x] Dynamic server settings editor
 - [ ] Backup system
 - [ ] Mod manager
 - [ ] Minecraft support

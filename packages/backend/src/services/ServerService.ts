@@ -2,11 +2,12 @@ import { PrismaClient } from '@prisma/client';
 import type { Server as SocketServer } from 'socket.io';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { Server, InstallConfig, ServerToClientEvents, ClientToServerEvents } from '@deployy/shared';
+import type { Server, InstallConfig, ServerToClientEvents, ClientToServerEvents, GameConfig } from '@deployy/shared';
 import { AdapterFactory } from '../adapters/AdapterFactory.js';
 import { BaseAdapter } from '../adapters/BaseAdapter.js';
 import { PathValidator } from '../utils/paths.js';
 import { logger } from '../utils/logger.js';
+import { AppError } from '../middleware/errorHandler.js';
 
 export class ServerService {
   private adapters: Map<string, BaseAdapter> = new Map();
@@ -189,6 +190,48 @@ export class ServerService {
 
   getAdapter(id: string): BaseAdapter | undefined {
     return this.adapters.get(id);
+  }
+
+  async getServerConfig(id: string): Promise<GameConfig> {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) {
+      throw new AppError(404, 'Server not found');
+    }
+
+    const configPath = path.join(server.path, 'config.json');
+
+    try {
+      const content = await fs.readFile(configPath, 'utf-8');
+      return JSON.parse(content);
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        throw new AppError(404, 'Config file not found');
+      }
+      throw new AppError(500, 'Failed to read config file');
+    }
+  }
+
+  async updateServerConfig(id: string, config: GameConfig): Promise<GameConfig> {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) {
+      throw new AppError(404, 'Server not found');
+    }
+
+    const configPath = path.join(server.path, 'config.json');
+
+    try {
+      await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+      logger.info('Server config updated', { serverId: id });
+      return config;
+    } catch (error) {
+      logger.error('Failed to update server config', { error, serverId: id });
+      throw new AppError(500, 'Failed to write config file');
+    }
+  }
+
+  isServerRunning(id: string): boolean {
+    const adapter = this.adapters.get(id);
+    return adapter?.isRunning() ?? false;
   }
 
   private getOrCreateAdapter(server: Server): BaseAdapter {

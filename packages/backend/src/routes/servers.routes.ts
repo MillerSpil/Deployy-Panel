@@ -185,5 +185,37 @@ export const createServerRouter = (
     }
   );
 
+  // Get server config (requires admin)
+  router.get(
+    '/:id/config',
+    validateParams(z.object({ id: serverIdSchema })),
+    permissions.checkServerPermission(getServerId, 'admin'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const config = await serverService.getServerConfig(req.params.id);
+        const isRunning = serverService.isServerRunning(req.params.id);
+        res.json({ config, isRunning });
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+
+  // Update server config (requires admin)
+  router.patch(
+    '/:id/config',
+    validateParams(z.object({ id: serverIdSchema })),
+    permissions.checkServerPermission(getServerId, 'admin'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const config = await serverService.updateServerConfig(req.params.id, req.body);
+        const isRunning = serverService.isServerRunning(req.params.id);
+        res.json({ config, isRunning, restartRequired: isRunning });
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+
   return router;
 };
