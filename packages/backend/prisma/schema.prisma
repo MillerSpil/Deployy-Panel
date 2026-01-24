@@ -37,24 +37,43 @@ model User {
 }
 
 model Server {
-  id          String   @id @default(uuid())
-  name        String
-  gameType    String
-  status      String   @default("stopped")
-  port        Int      @unique
-  maxPlayers  Int
-  path        String   @unique
-  version     String?
+  id              String   @id @default(uuid())
+  name            String
+  gameType        String
+  status          String   @default("stopped")
+  port            Int      @unique
+  maxPlayers      Int
+  path            String   @unique
+  version         String?
+  backupRetention Int      @default(5)
+  backupPath      String?
 
-  config      String   @default("{}")
+  config          String   @default("{}")
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  serverAccess ServerAccess[]
+  serverAccess    ServerAccess[]
+  backups         Backup[]
 
   @@index([gameType])
   @@index([status])
+}
+
+model Backup {
+  id        String   @id @default(uuid())
+  serverId  String
+  name      String
+  filename  String
+  size      BigInt
+  path      String
+
+  createdAt DateTime @default(now())
+
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@index([serverId])
+  @@index([createdAt])
 }
 
 model ServerAccess {

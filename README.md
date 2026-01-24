@@ -6,6 +6,7 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 
 - **Multi-Server Management** - Create and manage multiple game servers from a single dashboard
 - **Dynamic Server Settings** - Auto-generated config editor based on each game's JSON config
+- **Backup System** - Create, restore, and manage backups with configurable retention policies
 - **Roles & Permissions** - Granular access control with panel-wide roles and per-server permissions
 - **Real-Time Console** - Live server logs with ANSI color support and command input
 - **WebSocket Updates** - Instant status updates across all connected clients
@@ -121,6 +122,17 @@ Server endpoints require authentication and appropriate permissions.
 | POST | `/api/servers/:id/restart` | Restart server | Operator+ |
 | GET | `/api/servers/:id/config` | Get server config | Admin+ |
 | PATCH | `/api/servers/:id/config` | Update server config | Admin+ |
+
+### Backups (Protected)
+
+| Method | Endpoint | Description | Permission |
+|--------|----------|-------------|------------|
+| GET | `/api/servers/:id/backups` | List backups | Admin+ |
+| POST | `/api/servers/:id/backups` | Create backup | Admin+ |
+| PATCH | `/api/servers/:id/backups/retention` | Update retention setting | Admin+ |
+| GET | `/api/servers/:id/backups/:backupId/download` | Download backup | Admin+ |
+| POST | `/api/servers/:id/backups/:backupId/restore` | Restore backup | Admin+ |
+| DELETE | `/api/servers/:id/backups/:backupId` | Delete backup | Admin+ |
 
 ### Server Access (Protected)
 
@@ -260,6 +272,18 @@ The Settings tab on each server page provides a fully dynamic configuration edit
 
 This means when Hytale or other games update their config format, the UI adapts automatically without code changes.
 
+## Backup System
+
+The Backups tab on each server page provides comprehensive backup management:
+
+- **Create Backups** - Zip the entire server directory (excluding the backups folder itself)
+- **Restore Backups** - Extract a backup to restore server state (server must be stopped)
+- **Download Backups** - Download backup files as zip archives
+- **Delete Backups** - Remove old backups manually
+- **Retention Policy** - Configure how many backups to keep (e.g., keep last 5, auto-delete older)
+- **Backup Location** - Backups stored in `server_path/backups/`
+- **Permission Required** - Only users with Admin or Owner server access can manage backups
+
 ## Supported Games
 
 | Game | Status | Notes |
@@ -296,7 +320,7 @@ pnpm lint         # Run ESLint
 - [x] User authentication
 - [x] Multi-user support with roles & permissions
 - [x] Dynamic server settings editor
-- [ ] Backup system
+- [x] Backup system
 - [ ] Mod manager
 - [ ] Minecraft support
 - [ ] Docker support

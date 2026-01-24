@@ -4,13 +4,14 @@ import { serversApi } from '@/api/servers';
 import { ServerConsole } from '@/components/servers/ServerConsole';
 import { ServerAccessManager } from '@/components/servers/ServerAccessManager';
 import { ServerConfigEditor } from '@/components/servers/ServerConfigEditor';
+import { ServerBackupManager } from '@/components/servers/ServerBackupManager';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/common/Button';
 import { useSocket } from '@/hooks/useSocket';
 import { hasServerPermissionLevel } from '@/hooks/usePermissions';
 import type { ServerWithPermissions, ServerStatus } from '@deployy/shared';
 
-type TabType = 'console' | 'settings' | 'access';
+type TabType = 'console' | 'settings' | 'backups' | 'access';
 
 export function ServerPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,7 @@ export function ServerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('console');
+  const [actionLoading, setActionLoading] = useState<'start' | 'stop' | 'restart' | 'delete' | null>(null);
   const socket = useSocket();
 
   // Permission level helpers
@@ -64,51 +66,63 @@ export function ServerPage() {
   }, [socket, id]);
 
   const handleStart = async () => {
-    if (!id) return;
+    if (!id || actionLoading) return;
     try {
+      setActionLoading('start');
       await serversApi.start(id);
       fetchServer();
     } catch (err) {
       console.error('Failed to start server:', err);
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleStop = async () => {
-    if (!id) return;
+    if (!id || actionLoading) return;
     try {
+      setActionLoading('stop');
       await serversApi.stop(id);
       fetchServer();
     } catch (err) {
       console.error('Failed to stop server:', err);
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleRestart = async () => {
-    if (!id) return;
+    if (!id || actionLoading) return;
     try {
+      setActionLoading('restart');
       await serversApi.restart(id);
       fetchServer();
     } catch (err) {
       console.error('Failed to restart server:', err);
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleDelete = async () => {
-    if (!id) return;
+    if (!id || actionLoading) return;
     if (!confirm('Are you sure you want to delete this server?')) return;
 
     try {
+      setActionLoading('delete');
       await serversApi.delete(id);
       navigate('/');
     } catch (err) {
       console.error('Failed to delete server:', err);
+      setActionLoading(null);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-slate-400">Loading server...</p>
+      <div className="flex flex-col justify-center items-center h-64">
+        <SpinnerLarge />
+        <p className="text-slate-400 mt-4">Loading server...</p>
       </div>
     );
   }
@@ -166,32 +180,61 @@ export function ServerPage() {
               <Button
                 onClick={handleStart}
                 variant="primary"
-                disabled={server.status === 'running' || server.status === 'starting'}
-                className={server.status === 'running' || server.status === 'starting' ? 'opacity-50 cursor-not-allowed' : ''}
+                className="min-w-[100px]"
+                disabled={server.status === 'running' || server.status === 'starting' || actionLoading !== null}
               >
-                Start
+                {actionLoading === 'start' ? (
+                  <>
+                    <Spinner /> Starting...
+                  </>
+                ) : (
+                  'Start'
+                )}
               </Button>
               <Button
                 onClick={handleStop}
                 variant="danger"
-                disabled={server.status !== 'running'}
-                className={server.status !== 'running' ? 'opacity-50 cursor-not-allowed' : ''}
+                className="min-w-[100px]"
+                disabled={server.status !== 'running' || actionLoading !== null}
               >
-                Stop
+                {actionLoading === 'stop' ? (
+                  <>
+                    <Spinner /> Stopping...
+                  </>
+                ) : (
+                  'Stop'
+                )}
               </Button>
               <Button
                 onClick={handleRestart}
                 variant="secondary"
-                disabled={server.status !== 'running'}
-                className={server.status !== 'running' ? 'opacity-50 cursor-not-allowed' : ''}
+                className="min-w-[110px]"
+                disabled={server.status !== 'running' || actionLoading !== null}
               >
-                Restart
+                {actionLoading === 'restart' ? (
+                  <>
+                    <Spinner /> Restarting...
+                  </>
+                ) : (
+                  'Restart'
+                )}
               </Button>
             </>
           )}
           {canDelete && (
-            <Button onClick={handleDelete} variant="danger" className="ml-auto">
-              Delete
+            <Button
+              onClick={handleDelete}
+              variant="danger"
+              className="ml-auto min-w-[100px]"
+              disabled={actionLoading !== null}
+            >
+              {actionLoading === 'delete' ? (
+                <>
+                  <Spinner /> Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </Button>
           )}
         </div>
@@ -212,6 +255,14 @@ export function ServerPage() {
               onClick={() => setActiveTab('settings')}
             >
               Settings
+            </TabButton>
+          )}
+          {canManageSettings && (
+            <TabButton
+              active={activeTab === 'backups'}
+              onClick={() => setActiveTab('backups')}
+            >
+              Backups
             </TabButton>
           )}
           {isOwner && (
@@ -248,6 +299,10 @@ export function ServerPage() {
         </div>
       )}
 
+      {activeTab === 'backups' && canManageSettings && (
+        <ServerBackupManager serverId={server.id} serverStatus={server.status} />
+      )}
+
       {activeTab === 'access' && isOwner && (
         <ServerAccessManager serverId={server.id} isOwner={isOwner} />
       )}
@@ -273,5 +328,23 @@ function TabButton({ active, onClick, children }: TabButtonProps) {
     >
       {children}
     </button>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+    </svg>
+  );
+}
+
+function SpinnerLarge() {
+  return (
+    <svg className="animate-spin h-8 w-8 text-primary-400" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+    </svg>
   );
 }

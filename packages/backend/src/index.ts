@@ -13,11 +13,13 @@ import { PermissionService } from './services/PermissionService.js';
 import { RoleService } from './services/RoleService.js';
 import { UserService } from './services/UserService.js';
 import { ServerAccessService } from './services/ServerAccessService.js';
+import { BackupService } from './services/BackupService.js';
 import { createServerRouter } from './routes/servers.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createRolesRouter } from './routes/roles.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
 import { createServerAccessRouter } from './routes/serverAccess.routes.js';
+import { createBackupsRouter } from './routes/backups.routes.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createPermissionMiddleware } from './middleware/permissions.js';
 import { setupWebSocketHandlers } from './websocket/handlers.js';
@@ -39,6 +41,7 @@ async function main() {
   const roleService = new RoleService(prisma);
   const userService = new UserService(prisma);
   const accessService = new ServerAccessService(prisma);
+  const backupService = new BackupService(prisma);
 
   const app = express();
   const httpServer = createServer(app);
@@ -101,6 +104,13 @@ async function main() {
     '/api/servers/:serverId/access',
     requireAuth,
     createServerAccessRouter(accessService, permissions)
+  );
+
+  // Backup routes (nested under servers)
+  app.use(
+    '/api/servers/:serverId/backups',
+    requireAuth,
+    createBackupsRouter(backupService, serverService, permissions)
   );
 
   // Admin routes

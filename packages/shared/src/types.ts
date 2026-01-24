@@ -11,9 +11,20 @@ export interface Server {
   maxPlayers: number;
   path: string;
   version?: string;
+  backupRetention: number;
   config: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Backup {
+  id: string;
+  serverId: string;
+  name: string;
+  filename: string;
+  size: number;
+  path: string;
+  createdAt: Date;
 }
 
 export interface PerformanceMetrics {

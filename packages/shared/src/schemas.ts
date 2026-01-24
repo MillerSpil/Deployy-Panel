@@ -151,3 +151,25 @@ export const serverAccessIdSchema = z.string().uuid('Invalid access ID');
 export const transferOwnershipSchema = z.object({
   newOwnerId: z.string().uuid('Invalid user ID'),
 });
+
+// Backup schemas
+const BACKUP_NAME_REGEX = /^[a-zA-Z0-9\s\-_]+$/;
+
+export const createBackupSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Backup name is required')
+    .max(100, 'Backup name must be 100 characters or less')
+    .regex(BACKUP_NAME_REGEX, 'Backup name contains invalid characters')
+    .optional(),
+});
+
+export const backupIdSchema = z.string().uuid('Invalid backup ID');
+
+export const updateBackupRetentionSchema = z.object({
+  backupRetention: z
+    .number()
+    .int()
+    .min(0, 'Retention must be 0 or greater (0 = keep all)')
+    .max(100, 'Maximum retention is 100 backups'),
+});
