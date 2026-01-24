@@ -315,15 +315,20 @@ pnpm lint         # Run ESLint
 3. Implement required methods: `install()`, `start()`, `stop()`, `restart()`
 4. Register in `AdapterFactory`
 
-## Roadmap / Planned Features
+## Roadmap
 
-- **File Manager** - Browse, edit, upload, and delete server files from the panel
-- **Scheduled Tasks** - Auto-restart, scheduled backups, and other automated tasks
-- **Panel Self-Updater** - Check for new versions and one-click update
-- **Hytale Server Auto-Download** - Automatically download server files during setup
-- **Hytale Server Updater** - Check for and apply Hytale server updates
-- **Minecraft Support** - Adapter for Minecraft servers (Paper, Spigot, Fabric)
-- **Docker Support** - One-command deployment with Docker Compose
+- [x] User authentication
+- [x] Multi-user support with roles & permissions
+- [x] Dynamic server settings editor
+- [x] Backup system
+- [ ] File Manager - Browse, edit, upload, and delete server files from the panel
+- [ ] Scheduled Tasks - Auto-restart, scheduled backups, and other automated tasks
+- [ ] Panel Self-Updater - Check for new versions and one-click update
+- [ ] Hytale Server Auto-Download - Automatically download server files during setup
+- [ ] Hytale Server Updater - Check for and apply Hytale server updates
+- [ ] Mod manager
+- [ ] Minecraft Support - Adapter for Minecraft servers (Paper, Spigot, Fabric)
+- [ ] Docker Support - One-command deployment with Docker Compose
 
 ## License
 
