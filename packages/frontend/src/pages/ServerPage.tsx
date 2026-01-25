@@ -7,13 +7,14 @@ import { ServerConfigEditor } from '@/components/servers/ServerConfigEditor';
 import { ServerBackupManager } from '@/components/servers/ServerBackupManager';
 import { ServerFileManager } from '@/components/servers/ServerFileManager';
 import { ServerScheduleManager } from '@/components/servers/ServerScheduleManager';
+import { ServerUpdateManager } from '@/components/servers/ServerUpdateManager';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/common/Button';
 import { useSocket } from '@/hooks/useSocket';
 import { hasServerPermissionLevel } from '@/hooks/usePermissions';
 import type { ServerWithPermissions, ServerStatus } from '@deployy/shared';
 
-type TabType = 'console' | 'files' | 'settings' | 'backups' | 'schedules' | 'access';
+type TabType = 'console' | 'files' | 'settings' | 'backups' | 'schedules' | 'updates' | 'access';
 
 export function ServerPage() {
   const { id } = useParams<{ id: string }>();
@@ -283,6 +284,14 @@ export function ServerPage() {
               Schedules
             </TabButton>
           )}
+          {canManageSettings && server.gameType === 'hytale' && (
+            <TabButton
+              active={activeTab === 'updates'}
+              onClick={() => setActiveTab('updates')}
+            >
+              Updates
+            </TabButton>
+          )}
           {isOwner && (
             <TabButton
               active={activeTab === 'access'}
@@ -327,6 +336,13 @@ export function ServerPage() {
 
       {activeTab === 'schedules' && canManageSettings && (
         <ServerScheduleManager serverId={server.id} />
+      )}
+
+      {activeTab === 'updates' && canManageSettings && server.gameType === 'hytale' && (
+        <ServerUpdateManager
+          serverId={server.id}
+          serverStatus={server.status}
+        />
       )}
 
       {activeTab === 'access' && isOwner && (

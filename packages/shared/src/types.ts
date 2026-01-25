@@ -272,3 +272,4 @@ export interface UpdateScheduledTaskInput {
   enabled?: boolean;
   config?: ScheduledTaskConfig;
 }
+

@@ -68,3 +68,4 @@ PROJECT_BRIEF.md
 # Windows reserved names (accidentally created)
 nul
 NUL
+.hytale-downloader-credentials.json

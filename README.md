@@ -374,6 +374,24 @@ The download includes:
 - `Assets.zip` - Game assets required for the server
 - `config.json` - Default server configuration
 
+## Hytale Server Updates
+
+The Updates tab on Hytale server pages allows you to update your server files:
+
+- **Update Server** - Re-download and replace server files (server must be stopped)
+- **OAuth Authentication** - Same authentication flow as initial download
+- **Real-Time Progress** - Console output shows the update progress
+
+### How to Update
+
+1. Navigate to your Hytale server's **Updates** tab
+2. **Stop the server** if it's running
+3. Click **Update Server**
+4. Authenticate when prompted (same as initial download)
+5. Server files are automatically replaced with the new version
+
+**Note:** Updates require the server to be stopped to prevent file conflicts.
+
 ## Supported Games
 
 | Game | Status | Notes |
@@ -414,8 +432,8 @@ pnpm lint         # Run ESLint
 - [x] File Manager - Browse, edit, upload, and download server files with Monaco Editor
 - [x] Scheduled Tasks - Auto-restart, scheduled backups, and custom commands with cron scheduling
 - [x] Hytale Server Auto-Download - Automatically download server files during setup with OAuth
+- [x] Hytale Server Updater - Check for updates and update server files with one click
 - [ ] Panel Self-Updater - Check for new versions and one-click update
-- [ ] Hytale Server Updater - Check for and apply Hytale server updates
 - [ ] Mod manager
 - [ ] Minecraft Support - Adapter for Minecraft servers (Paper, Spigot, Fabric)
 - [ ] Docker Support - One-command deployment with Docker Compose
