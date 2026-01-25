@@ -231,3 +231,44 @@ export const renameFileSchema = z.object({
     .max(255, 'Name is too long')
     .regex(FILE_NAME_REGEX, 'Invalid file name characters'),
 });
+
+// Scheduled Task schemas
+const SCHEDULE_IDS = [
+  'every_1h',
+  'every_3h',
+  'every_6h',
+  'every_12h',
+  'daily_00:00',
+  'daily_03:00',
+  'daily_06:00',
+  'daily_12:00',
+  'daily_18:00',
+  'weekly_sunday',
+  'weekly_monday',
+] as const;
+
+const TASK_TYPES = ['restart', 'backup', 'command'] as const;
+
+export const scheduledTaskConfigSchema = z.object({
+  command: z.string().max(500, 'Command is too long').optional(),
+  backupName: z
+    .string()
+    .max(100, 'Backup name is too long')
+    .regex(/^[a-zA-Z0-9\s\-_]*$/, 'Backup name contains invalid characters')
+    .optional(),
+});
+
+export const createScheduledTaskSchema = z.object({
+  type: z.enum(TASK_TYPES, { required_error: 'Task type is required' }),
+  schedule: z.enum(SCHEDULE_IDS, { required_error: 'Schedule is required' }),
+  enabled: z.boolean().default(true),
+  config: scheduledTaskConfigSchema.optional(),
+});
+
+export const updateScheduledTaskSchema = z.object({
+  schedule: z.enum(SCHEDULE_IDS).optional(),
+  enabled: z.boolean().optional(),
+  config: scheduledTaskConfigSchema.optional(),
+});
+
+export const scheduledTaskIdSchema = z.string().uuid('Invalid task ID');

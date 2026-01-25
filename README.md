@@ -8,6 +8,7 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 - **Dynamic Server Settings** - Auto-generated config editor based on each game's JSON config
 - **Backup System** - Create, restore, and manage backups with configurable retention policies
 - **File Manager** - Browse, view, edit, upload, and download server files with Monaco Editor
+- **Scheduled Tasks** - Automate server restarts, backups, and custom commands with cron-based scheduling
 - **Roles & Permissions** - Granular access control with panel-wide roles and per-server permissions
 - **Real-Time Console** - Live server logs with ANSI color support and command input
 - **WebSocket Updates** - Instant status updates across all connected clients
@@ -147,6 +148,17 @@ Server endpoints require authentication and appropriate permissions.
 | PATCH | `/api/servers/:id/files/rename` | Rename file or folder | Admin+ |
 | GET | `/api/servers/:id/files/download` | Download file | Admin+ |
 | POST | `/api/servers/:id/files/upload` | Upload file | Admin+ |
+
+### Scheduled Tasks (Protected)
+
+| Method | Endpoint | Description | Permission |
+|--------|----------|-------------|------------|
+| GET | `/api/servers/:id/schedules` | List scheduled tasks | Admin+ |
+| GET | `/api/servers/:id/schedules/:taskId` | Get task details | Admin+ |
+| POST | `/api/servers/:id/schedules` | Create scheduled task | Admin+ |
+| PATCH | `/api/servers/:id/schedules/:taskId` | Update scheduled task | Admin+ |
+| POST | `/api/servers/:id/schedules/:taskId/toggle` | Toggle task enabled | Admin+ |
+| DELETE | `/api/servers/:id/schedules/:taskId` | Delete scheduled task | Admin+ |
 
 ### Server Access (Protected)
 
@@ -313,6 +325,34 @@ The Files tab on each server page provides a full-featured file manager:
 - **Path Security** - All operations are validated to prevent path traversal attacks
 - **Permission Required** - Only users with Admin or Owner server access can manage files
 
+## Scheduled Tasks
+
+The Schedules tab on each server page provides automated task scheduling:
+
+- **Auto-Restart** - Schedule automatic server restarts at intervals (hourly, daily, weekly)
+- **Scheduled Backups** - Automate backup creation on a regular schedule
+- **Custom Commands** - Execute server commands automatically (e.g., warning messages before restart)
+- **Enable/Disable** - Toggle tasks on and off without deleting them
+- **Multiple Schedules** - Create multiple tasks with different schedules per server
+- **Last Run Tracking** - See when each task last executed and when it will run next
+- **Permission Required** - Only users with Admin or Owner server access can manage schedules
+
+### Available Schedules
+
+| Schedule | Description |
+|----------|-------------|
+| Every hour | Runs at the top of each hour |
+| Every 3 hours | Runs at 0:00, 3:00, 6:00, etc. |
+| Every 6 hours | Runs at 0:00, 6:00, 12:00, 18:00 |
+| Every 12 hours | Runs at 0:00 and 12:00 |
+| Daily at midnight | Runs at 00:00 every day |
+| Daily at 3:00 AM | Runs at 03:00 every day |
+| Daily at 6:00 AM | Runs at 06:00 every day |
+| Daily at noon | Runs at 12:00 every day |
+| Daily at 6:00 PM | Runs at 18:00 every day |
+| Weekly on Sunday | Runs at midnight every Sunday |
+| Weekly on Monday | Runs at midnight every Monday |
+
 ## Supported Games
 
 | Game | Status | Notes |
@@ -351,7 +391,7 @@ pnpm lint         # Run ESLint
 - [x] Dynamic server settings editor
 - [x] Backup system
 - [x] File Manager - Browse, edit, upload, and download server files with Monaco Editor
-- [ ] Scheduled Tasks - Auto-restart, scheduled backups, and other automated tasks
+- [x] Scheduled Tasks - Auto-restart, scheduled backups, and custom commands with cron scheduling
 - [ ] Panel Self-Updater - Check for new versions and one-click update
 - [ ] Hytale Server Auto-Download - Automatically download server files during setup
 - [ ] Hytale Server Updater - Check for and apply Hytale server updates

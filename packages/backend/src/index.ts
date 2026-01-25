@@ -15,6 +15,7 @@ import { UserService } from './services/UserService.js';
 import { ServerAccessService } from './services/ServerAccessService.js';
 import { BackupService } from './services/BackupService.js';
 import { FileService } from './services/FileService.js';
+import { SchedulerService } from './services/SchedulerService.js';
 import { createServerRouter } from './routes/servers.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createRolesRouter } from './routes/roles.routes.js';
@@ -22,6 +23,7 @@ import { createUsersRouter } from './routes/users.routes.js';
 import { createServerAccessRouter } from './routes/serverAccess.routes.js';
 import { createBackupsRouter } from './routes/backups.routes.js';
 import { createFilesRouter } from './routes/files.routes.js';
+import { createSchedulesRouter } from './routes/schedules.routes.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createPermissionMiddleware } from './middleware/permissions.js';
 import { setupWebSocketHandlers } from './websocket/handlers.js';
@@ -45,6 +47,14 @@ async function main() {
   const accessService = new ServerAccessService(prisma);
   const backupService = new BackupService(prisma);
   const fileService = new FileService(prisma);
+  const schedulerService = new SchedulerService(prisma);
+
+  // Set scheduler dependencies and initialize
+  schedulerService.setDependencies({
+    serverService,
+    backupService,
+  });
+  await schedulerService.initialize();
 
   const app = express();
   const httpServer = createServer(app);
@@ -123,6 +133,13 @@ async function main() {
     createFilesRouter(fileService, permissions)
   );
 
+  // Scheduled tasks routes (nested under servers)
+  app.use(
+    '/api/servers/:serverId/schedules',
+    requireAuth,
+    createSchedulesRouter(schedulerService, permissions)
+  );
+
   // Admin routes
   app.use('/api/roles', requireAuth, createRolesRouter(roleService, permissions));
   app.use('/api/users', requireAuth, createUsersRouter(userService, permissions));
@@ -135,6 +152,10 @@ async function main() {
 
   const shutdown = async () => {
     logger.info('Shutting down gracefully...');
+
+    // Stop all scheduled tasks
+    await schedulerService.shutdown();
+    logger.info('Scheduler stopped');
 
     httpServer.close(() => {
       logger.info('HTTP server closed');

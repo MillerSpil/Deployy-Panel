@@ -55,6 +55,7 @@ model Server {
 
   serverAccess    ServerAccess[]
   backups         Backup[]
+  scheduledTasks  ScheduledTask[]
 
   @@index([gameType])
   @@index([status])
@@ -89,4 +90,23 @@ model ServerAccess {
   @@unique([userId, serverId])
   @@index([userId])
   @@index([serverId])
+}
+
+model ScheduledTask {
+  id        String    @id @default(uuid())
+  serverId  String
+  type      String    // 'restart', 'backup', 'command'
+  schedule  String    // Schedule identifier like 'every_6h', 'daily_03:00'
+  enabled   Boolean   @default(true)
+  config    String    @default("{}") // JSON config (command text, backup name, etc.)
+  lastRun   DateTime?
+  nextRun   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@index([serverId])
+  @@index([enabled])
+  @@index([nextRun])
 }

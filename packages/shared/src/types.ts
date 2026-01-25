@@ -209,3 +209,55 @@ export const TEXT_EXTENSIONS: Record<string, string> = {
   '.ini': 'ini',
   '.toml': 'ini',
 };
+
+// Scheduled Tasks types
+export const SCHEDULED_TASK_TYPES = ['restart', 'backup', 'command'] as const;
+export type ScheduledTaskType = (typeof SCHEDULED_TASK_TYPES)[number];
+
+// Predefined schedule options with human-readable labels
+export const SCHEDULE_OPTIONS = [
+  { id: 'every_1h', label: 'Every hour', cron: '0 * * * *' },
+  { id: 'every_3h', label: 'Every 3 hours', cron: '0 */3 * * *' },
+  { id: 'every_6h', label: 'Every 6 hours', cron: '0 */6 * * *' },
+  { id: 'every_12h', label: 'Every 12 hours', cron: '0 */12 * * *' },
+  { id: 'daily_00:00', label: 'Daily at midnight', cron: '0 0 * * *' },
+  { id: 'daily_03:00', label: 'Daily at 3:00 AM', cron: '0 3 * * *' },
+  { id: 'daily_06:00', label: 'Daily at 6:00 AM', cron: '0 6 * * *' },
+  { id: 'daily_12:00', label: 'Daily at noon', cron: '0 12 * * *' },
+  { id: 'daily_18:00', label: 'Daily at 6:00 PM', cron: '0 18 * * *' },
+  { id: 'weekly_sunday', label: 'Weekly on Sunday at midnight', cron: '0 0 * * 0' },
+  { id: 'weekly_monday', label: 'Weekly on Monday at midnight', cron: '0 0 * * 1' },
+] as const;
+
+export type ScheduleId = (typeof SCHEDULE_OPTIONS)[number]['id'];
+
+export interface ScheduledTaskConfig {
+  command?: string; // For 'command' type
+  backupName?: string; // For 'backup' type
+}
+
+export interface ScheduledTask {
+  id: string;
+  serverId: string;
+  type: ScheduledTaskType;
+  schedule: ScheduleId;
+  enabled: boolean;
+  config: ScheduledTaskConfig;
+  lastRun: Date | null;
+  nextRun: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateScheduledTaskInput {
+  type: ScheduledTaskType;
+  schedule: ScheduleId;
+  enabled?: boolean;
+  config?: ScheduledTaskConfig;
+}
+
+export interface UpdateScheduledTaskInput {
+  schedule?: ScheduleId;
+  enabled?: boolean;
+  config?: ScheduledTaskConfig;
+}

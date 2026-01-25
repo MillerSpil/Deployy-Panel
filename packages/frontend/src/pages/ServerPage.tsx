@@ -6,13 +6,14 @@ import { ServerAccessManager } from '@/components/servers/ServerAccessManager';
 import { ServerConfigEditor } from '@/components/servers/ServerConfigEditor';
 import { ServerBackupManager } from '@/components/servers/ServerBackupManager';
 import { ServerFileManager } from '@/components/servers/ServerFileManager';
+import { ServerScheduleManager } from '@/components/servers/ServerScheduleManager';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/common/Button';
 import { useSocket } from '@/hooks/useSocket';
 import { hasServerPermissionLevel } from '@/hooks/usePermissions';
 import type { ServerWithPermissions, ServerStatus } from '@deployy/shared';
 
-type TabType = 'console' | 'files' | 'settings' | 'backups' | 'access';
+type TabType = 'console' | 'files' | 'settings' | 'backups' | 'schedules' | 'access';
 
 export function ServerPage() {
   const { id } = useParams<{ id: string }>();
@@ -274,6 +275,14 @@ export function ServerPage() {
               Backups
             </TabButton>
           )}
+          {canManageSettings && (
+            <TabButton
+              active={activeTab === 'schedules'}
+              onClick={() => setActiveTab('schedules')}
+            >
+              Schedules
+            </TabButton>
+          )}
           {isOwner && (
             <TabButton
               active={activeTab === 'access'}
@@ -314,6 +323,10 @@ export function ServerPage() {
 
       {activeTab === 'backups' && canManageSettings && (
         <ServerBackupManager serverId={server.id} serverStatus={server.status} />
+      )}
+
+      {activeTab === 'schedules' && canManageSettings && (
+        <ServerScheduleManager serverId={server.id} />
       )}
 
       {activeTab === 'access' && isOwner && (
