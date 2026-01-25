@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { FileService } from '../services/FileService.js';
 import { validate } from '../middleware/validation.js';
@@ -14,6 +15,24 @@ import {
 } from '@deployy/shared';
 import type { PermissionMiddleware } from '../middleware/permissions.js';
 import { AppError } from '../middleware/errorHandler.js';
+
+// Rate limiter for resource-intensive file operations (30 requests per minute)
+const fileOpsRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  message: { error: 'Too many file operations, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter rate limiter for downloads/uploads (10 per minute)
+const fileTransferRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  message: { error: 'Too many file transfers, please wait before downloading/uploading more files' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // SECURITY: Zod schema for path query parameter validation
 const pathQuerySchema = z
@@ -87,6 +106,7 @@ export const createFilesRouter = (
   // Read file content
   router.get(
     '/read',
+    fileOpsRateLimiter,
     permissions.checkServerPermission(getServerId, 'admin'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -110,6 +130,7 @@ export const createFilesRouter = (
   // Write file content
   router.put(
     '/write',
+    fileOpsRateLimiter,
     permissions.checkServerPermission(getServerId, 'admin'),
     validate(writeFileSchema),
     async (req: Request, res: Response, next: NextFunction) => {
@@ -178,6 +199,7 @@ export const createFilesRouter = (
   // Download file
   router.get(
     '/download',
+    fileTransferRateLimiter,
     permissions.checkServerPermission(getServerId, 'admin'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -211,6 +233,7 @@ export const createFilesRouter = (
   // Upload file
   router.post(
     '/upload',
+    fileTransferRateLimiter,
     permissions.checkServerPermission(getServerId, 'admin'),
     upload.single('file'),
     async (req: Request, res: Response, next: NextFunction) => {

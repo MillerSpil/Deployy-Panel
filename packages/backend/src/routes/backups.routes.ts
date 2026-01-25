@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
+import rateLimit from 'express-rate-limit';
 import { BackupService } from '../services/BackupService.js';
 import { ServerService } from '../services/ServerService.js';
 import { validate, validateParams } from '../middleware/validation.js';
@@ -14,6 +15,24 @@ import {
 import { z } from 'zod';
 import type { PermissionMiddleware } from '../middleware/permissions.js';
 import { AppError } from '../middleware/errorHandler.js';
+
+// Rate limiter for backup creation (5 per hour - backups are resource-intensive)
+const backupCreateRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: { error: 'Too many backup requests. Please wait before creating more backups.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter for backup downloads (10 per hour)
+const backupDownloadRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  message: { error: 'Too many backup downloads. Please wait before downloading more.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 export const createBackupsRouter = (
   backupService: BackupService,
@@ -42,6 +61,7 @@ export const createBackupsRouter = (
   // Create backup
   router.post(
     '/',
+    backupCreateRateLimiter,
     permissions.checkServerPermission(getServerId, 'admin'),
     validate(createBackupSchema),
     async (req: Request, res: Response, next: NextFunction) => {
@@ -96,6 +116,7 @@ export const createBackupsRouter = (
   // Download backup
   router.get(
     '/:backupId/download',
+    backupDownloadRateLimiter,
     permissions.checkServerPermission(getServerId, 'admin'),
     validateParams(z.object({ serverId: serverIdSchema, backupId: backupIdSchema })),
     async (req: Request, res: Response, next: NextFunction) => {
