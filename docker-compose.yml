@@ -1,0 +1,14 @@
+services:
+  deployy-panel:
+    image: deployy-panel
+    container_name: deployy-panel
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/data/deployy.db
+    env_file:
+      - .env
+    restart: unless-stopped

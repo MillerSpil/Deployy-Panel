@@ -9,7 +9,7 @@ interface HytaleDownloadModalProps {
   onClose: () => void;
   serverId: string;
   serverName: string;
-  startDownload: () => Promise<void>;
+  startDownload: () => Promise<unknown>;
 }
 
 interface LogEntry {
@@ -43,13 +43,9 @@ export function HytaleDownloadModal({ isOpen, onClose, serverId, serverName, sta
 
   // Subscribe to events first
   useEffect(() => {
-    console.log('[HytaleDownloadModal] useEffect - socket:', !!socket, 'isOpen:', isOpen, 'serverId:', serverId);
     if (!socket || !isOpen) return;
 
-    console.log('[HytaleDownloadModal] Subscribing to events, socket connected:', socket.connected);
-
     const handleProgress = (data: { serverId: string; status: HytaleDownloadStatus; message: string; authUrl?: string }) => {
-      console.log('[HytaleDownloadModal] Received progress:', data);
       if (data.serverId !== serverId) return;
 
       setStatus(data.status);
@@ -60,7 +56,6 @@ export function HytaleDownloadModal({ isOpen, onClose, serverId, serverName, sta
     };
 
     const handleLog = (data: { serverId: string; line: string; timestamp: string }) => {
-      console.log('[HytaleDownloadModal] Received log:', data.line);
       if (data.serverId !== serverId) return;
 
       setLogs(prev => [...prev, { line: data.line, timestamp: data.timestamp }]);
@@ -70,7 +65,6 @@ export function HytaleDownloadModal({ isOpen, onClose, serverId, serverName, sta
     socket.on('hytale:download:log', handleLog);
 
     return () => {
-      console.log('[HytaleDownloadModal] Cleaning up event listeners');
       socket.off('hytale:download:progress', handleProgress);
       socket.off('hytale:download:log', handleLog);
     };
@@ -82,10 +76,8 @@ export function HytaleDownloadModal({ isOpen, onClose, serverId, serverName, sta
 
     // Small delay to ensure event handlers are registered
     const timer = setTimeout(() => {
-      console.log('[HytaleDownloadModal] Starting download...');
       setDownloadStarted(true);
-      startDownload().catch((err) => {
-        console.error('[HytaleDownloadModal] Failed to start download:', err);
+      startDownload().catch((err: Error) => {
         setStatus('error');
         setMessage(err.message || 'Failed to start download');
       });

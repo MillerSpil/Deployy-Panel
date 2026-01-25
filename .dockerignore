@@ -69,3 +69,11 @@ PROJECT_BRIEF.md
 nul
 NUL
 .hytale-downloader-credentials.json
+
+# Docker-specific exclusions
+Dockerfile*
+docker-compose*.yml
+*.md
+!packages/*/README.md
+.git/
+.gitignore

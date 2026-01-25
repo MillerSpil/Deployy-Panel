@@ -18,6 +18,7 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 - **Game Adapters** - Extensible architecture for adding new game support
 - **Panel Self-Updater** - Check for updates and update the panel from GitHub releases with one click
 - **Dark Theme** - Modern, eye-friendly interface
+- **Docker Support** - One-command deployment with Docker Compose
 
 ## Tech Stack
 
@@ -67,6 +68,58 @@ pnpm dev
 ### 4. Open Dashboard
 
 Navigate to [http://localhost:5173](http://localhost:5173)
+
+## Docker Deployment
+
+### Quick Start with Docker
+
+```bash
+# Clone the repository
+git clone https://github.com/MillerSpil/Deployy-Panel.git
+cd Deployy-Panel
+
+# Build the Docker image
+docker build -t deployy-panel .
+
+# Create .env file (copy from example and configure)
+cp packages/backend/.env.example .env
+# Edit .env with your JWT_SECRET and other settings
+
+# Start the container
+docker compose up -d
+```
+
+The panel will be available at [http://localhost:3000](http://localhost:3000)
+
+### Configuration
+
+The `docker-compose.yml` mounts one volume:
+- `./data` - Database and persistent data (mapped to `/data` in container)
+
+Environment variables can be set in your `.env` file:
+- `JWT_SECRET` - Required, generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- `DATABASE_URL` - Set to `file:/data/deployy.db` in production
+- `NODE_ENV` - Set to `production`
+
+### Commands
+
+```bash
+# Build the image
+docker build -t deployy-panel .
+
+# Start the panel
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop the panel
+docker compose down
+
+# Rebuild after updates
+docker build -t deployy-panel . --no-cache
+docker compose up -d
+```
 
 ## Project Structure
 
@@ -508,7 +561,7 @@ pnpm lint         # Run ESLint
 - [x] Panel Self-Updater - Check for new versions and one-click update from GitHub releases
 - [ ] Mod manager
 - [ ] Minecraft Support - Adapter for Minecraft servers (Paper, Spigot, Fabric)
-- [ ] Docker Support - One-command deployment with Docker Compose
+- [x] Docker Support - One-command deployment with Docker Compose
 
 ## License
 

@@ -1,4 +1,6 @@
 import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import { Server as SocketServer } from 'socket.io';
 import { PrismaClient } from '@prisma/client';
@@ -154,6 +156,20 @@ async function main() {
 
   // Update routes (mostly admin-only, but version endpoint is public)
   app.use('/api/update', requireAuth, createUpdateRouter(updateService, permissions));
+
+  // Serve frontend static files in production
+  if (process.env.NODE_ENV === 'production') {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const frontendPath = path.join(__dirname, '../../frontend/dist');
+
+    app.use(express.static(frontendPath));
+
+    // SPA fallback - serve index.html for all non-API routes
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(frontendPath, 'index.html'));
+    });
+  }
 
   app.use(errorHandler);
 
