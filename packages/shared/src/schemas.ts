@@ -173,3 +173,61 @@ export const updateBackupRetentionSchema = z.object({
     .min(0, 'Retention must be 0 or greater (0 = keep all)')
     .max(100, 'Maximum retention is 100 backups'),
 });
+
+// File Manager schemas
+const FILE_PATH_REGEX = /^[^<>:"|?*\x00-\x1f]*$/;
+const FILE_NAME_REGEX = /^[^<>:"/\\|?*\x00-\x1f]+$/;
+
+export const listFilesSchema = z.object({
+  path: z
+    .string()
+    .default('')
+    .refine((p) => !p.includes('..'), 'Path cannot contain ".."'),
+});
+
+export const readFileSchema = z.object({
+  path: z
+    .string()
+    .min(1, 'File path is required')
+    .regex(FILE_PATH_REGEX, 'Invalid path characters')
+    .refine((p) => !p.includes('..'), 'Path cannot contain ".."'),
+});
+
+export const writeFileSchema = z.object({
+  path: z
+    .string()
+    .min(1, 'File path is required')
+    .regex(FILE_PATH_REGEX, 'Invalid path characters')
+    .refine((p) => !p.includes('..'), 'Path cannot contain ".."'),
+  content: z.string(),
+});
+
+export const createFileSchema = z.object({
+  path: z
+    .string()
+    .min(1, 'File path is required')
+    .regex(FILE_PATH_REGEX, 'Invalid path characters')
+    .refine((p) => !p.includes('..'), 'Path cannot contain ".."'),
+  type: z.enum(['file', 'directory']),
+});
+
+export const deleteFileSchema = z.object({
+  path: z
+    .string()
+    .min(1, 'File path is required')
+    .regex(FILE_PATH_REGEX, 'Invalid path characters')
+    .refine((p) => !p.includes('..'), 'Path cannot contain ".."'),
+});
+
+export const renameFileSchema = z.object({
+  oldPath: z
+    .string()
+    .min(1, 'Current path is required')
+    .regex(FILE_PATH_REGEX, 'Invalid path characters')
+    .refine((p) => !p.includes('..'), 'Path cannot contain ".."'),
+  newName: z
+    .string()
+    .min(1, 'New name is required')
+    .max(255, 'Name is too long')
+    .regex(FILE_NAME_REGEX, 'Invalid file name characters'),
+});

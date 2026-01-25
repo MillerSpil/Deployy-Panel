@@ -154,3 +154,58 @@ export interface AuthUserWithPermissions extends AuthUser {
 export interface ServerWithPermissions extends Server {
   userPermissionLevel: ServerPermissionLevel | null;
 }
+
+// File Manager types
+export interface FileInfo {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  size: number;
+  modified: string;
+  extension?: string;
+}
+
+export interface FileContent {
+  path: string;
+  content: string;
+  size: number;
+  modified: string;
+}
+
+// Binary file extensions that cannot be edited
+export const BINARY_EXTENSIONS = [
+  '.jar', '.exe', '.dll', '.so', '.dylib',
+  '.zip', '.tar', '.gz', '.rar', '.7z',
+  '.png', '.jpg', '.jpeg', '.gif', '.ico', '.bmp', '.webp',
+  '.mp3', '.wav', '.ogg', '.mp4', '.avi', '.mkv',
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx',
+  '.class', '.pyc', '.o', '.obj',
+  '.db', '.sqlite', '.sqlite3',
+] as const;
+
+// Text file extensions with syntax highlighting support
+export const TEXT_EXTENSIONS: Record<string, string> = {
+  '.json': 'json',
+  '.properties': 'ini',
+  '.yaml': 'yaml',
+  '.yml': 'yaml',
+  '.txt': 'plaintext',
+  '.log': 'plaintext',
+  '.md': 'markdown',
+  '.xml': 'xml',
+  '.html': 'html',
+  '.htm': 'html',
+  '.css': 'css',
+  '.js': 'javascript',
+  '.ts': 'typescript',
+  '.sh': 'shell',
+  '.bat': 'bat',
+  '.cmd': 'bat',
+  '.ps1': 'powershell',
+  '.py': 'python',
+  '.java': 'java',
+  '.cfg': 'ini',
+  '.conf': 'ini',
+  '.ini': 'ini',
+  '.toml': 'ini',
+};

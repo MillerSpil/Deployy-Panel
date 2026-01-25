@@ -7,6 +7,7 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 - **Multi-Server Management** - Create and manage multiple game servers from a single dashboard
 - **Dynamic Server Settings** - Auto-generated config editor based on each game's JSON config
 - **Backup System** - Create, restore, and manage backups with configurable retention policies
+- **File Manager** - Browse, view, edit, upload, and download server files with Monaco Editor
 - **Roles & Permissions** - Granular access control with panel-wide roles and per-server permissions
 - **Real-Time Console** - Live server logs with ANSI color support and command input
 - **WebSocket Updates** - Instant status updates across all connected clients
@@ -133,6 +134,19 @@ Server endpoints require authentication and appropriate permissions.
 | GET | `/api/servers/:id/backups/:backupId/download` | Download backup | Admin+ |
 | POST | `/api/servers/:id/backups/:backupId/restore` | Restore backup | Admin+ |
 | DELETE | `/api/servers/:id/backups/:backupId` | Delete backup | Admin+ |
+
+### Files (Protected)
+
+| Method | Endpoint | Description | Permission |
+|--------|----------|-------------|------------|
+| GET | `/api/servers/:id/files` | List files in directory | Admin+ |
+| GET | `/api/servers/:id/files/read` | Read file content | Admin+ |
+| PUT | `/api/servers/:id/files/write` | Write file content | Admin+ |
+| POST | `/api/servers/:id/files/create` | Create file or folder | Admin+ |
+| DELETE | `/api/servers/:id/files/delete` | Delete file or folder | Admin+ |
+| PATCH | `/api/servers/:id/files/rename` | Rename file or folder | Admin+ |
+| GET | `/api/servers/:id/files/download` | Download file | Admin+ |
+| POST | `/api/servers/:id/files/upload` | Upload file | Admin+ |
 
 ### Server Access (Protected)
 
@@ -284,6 +298,21 @@ The Backups tab on each server page provides comprehensive backup management:
 - **Backup Location** - Backups stored in `server_path/backups/`
 - **Permission Required** - Only users with Admin or Owner server access can manage backups
 
+## File Manager
+
+The Files tab on each server page provides a full-featured file manager:
+
+- **Browse Files** - Navigate through server directories with breadcrumb navigation
+- **Edit Files** - Built-in Monaco Editor (VSCode's editor) with syntax highlighting for JSON, YAML, properties, logs, and more
+- **Create Files/Folders** - Create new files or directories
+- **Rename** - Rename files and folders
+- **Delete** - Delete files and folders with confirmation dialog
+- **Upload** - Upload files via button or drag & drop
+- **Download** - Download any file directly
+- **Binary Protection** - Binary files (.jar, .exe, .zip, etc.) are blocked from editing but can be downloaded
+- **Path Security** - All operations are validated to prevent path traversal attacks
+- **Permission Required** - Only users with Admin or Owner server access can manage files
+
 ## Supported Games
 
 | Game | Status | Notes |
@@ -321,7 +350,7 @@ pnpm lint         # Run ESLint
 - [x] Multi-user support with roles & permissions
 - [x] Dynamic server settings editor
 - [x] Backup system
-- [ ] File Manager - Browse, edit, upload, and delete server files from the panel
+- [x] File Manager - Browse, edit, upload, and download server files with Monaco Editor
 - [ ] Scheduled Tasks - Auto-restart, scheduled backups, and other automated tasks
 - [ ] Panel Self-Updater - Check for new versions and one-click update
 - [ ] Hytale Server Auto-Download - Automatically download server files during setup

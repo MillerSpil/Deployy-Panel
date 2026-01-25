@@ -5,13 +5,14 @@ import { ServerConsole } from '@/components/servers/ServerConsole';
 import { ServerAccessManager } from '@/components/servers/ServerAccessManager';
 import { ServerConfigEditor } from '@/components/servers/ServerConfigEditor';
 import { ServerBackupManager } from '@/components/servers/ServerBackupManager';
+import { ServerFileManager } from '@/components/servers/ServerFileManager';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/common/Button';
 import { useSocket } from '@/hooks/useSocket';
 import { hasServerPermissionLevel } from '@/hooks/usePermissions';
 import type { ServerWithPermissions, ServerStatus } from '@deployy/shared';
 
-type TabType = 'console' | 'settings' | 'backups' | 'access';
+type TabType = 'console' | 'files' | 'settings' | 'backups' | 'access';
 
 export function ServerPage() {
   const { id } = useParams<{ id: string }>();
@@ -251,6 +252,14 @@ export function ServerPage() {
           </TabButton>
           {canManageSettings && (
             <TabButton
+              active={activeTab === 'files'}
+              onClick={() => setActiveTab('files')}
+            >
+              Files
+            </TabButton>
+          )}
+          {canManageSettings && (
+            <TabButton
               active={activeTab === 'settings'}
               onClick={() => setActiveTab('settings')}
             >
@@ -290,6 +299,10 @@ export function ServerPage() {
             />
           )}
         </div>
+      )}
+
+      {activeTab === 'files' && canManageSettings && (
+        <ServerFileManager serverId={server.id} />
       )}
 
       {activeTab === 'settings' && canManageSettings && (

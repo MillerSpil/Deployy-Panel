@@ -14,12 +14,14 @@ import { RoleService } from './services/RoleService.js';
 import { UserService } from './services/UserService.js';
 import { ServerAccessService } from './services/ServerAccessService.js';
 import { BackupService } from './services/BackupService.js';
+import { FileService } from './services/FileService.js';
 import { createServerRouter } from './routes/servers.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createRolesRouter } from './routes/roles.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
 import { createServerAccessRouter } from './routes/serverAccess.routes.js';
 import { createBackupsRouter } from './routes/backups.routes.js';
+import { createFilesRouter } from './routes/files.routes.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createPermissionMiddleware } from './middleware/permissions.js';
 import { setupWebSocketHandlers } from './websocket/handlers.js';
@@ -42,6 +44,7 @@ async function main() {
   const userService = new UserService(prisma);
   const accessService = new ServerAccessService(prisma);
   const backupService = new BackupService(prisma);
+  const fileService = new FileService(prisma);
 
   const app = express();
   const httpServer = createServer(app);
@@ -111,6 +114,13 @@ async function main() {
     '/api/servers/:serverId/backups',
     requireAuth,
     createBackupsRouter(backupService, serverService, permissions)
+  );
+
+  // File manager routes (nested under servers)
+  app.use(
+    '/api/servers/:serverId/files',
+    requireAuth,
+    createFilesRouter(fileService, permissions)
   );
 
   // Admin routes
