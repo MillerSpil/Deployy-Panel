@@ -1,6 +1,18 @@
 {
   "name": "@deployy/shared",
   "version": "0.1.0",
+  "description": "Shared types and schemas for Deployy Panel",
+  "license": "AGPL-3.0",
+  "author": "MillerSpil",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MillerSpil/Deployy-Panel.git",
+    "directory": "packages/shared"
+  },
+  "homepage": "https://github.com/MillerSpil/Deployy-Panel#readme",
+  "bugs": {
+    "url": "https://github.com/MillerSpil/Deployy-Panel/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +25,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
     "zod": "^3.22.4"

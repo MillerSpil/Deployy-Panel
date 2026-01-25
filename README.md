@@ -35,8 +35,8 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/deployy-panel.git
-cd deployy-panel
+git clone https://github.com/MillerSpil/Deployy-Panel.git
+cd Deployy-Panel
 pnpm install
 ```
 
@@ -70,7 +70,7 @@ Navigate to [http://localhost:5173](http://localhost:5173)
 ## Project Structure
 
 ```
-deployy-panel/
+Deployy-Panel/
 ├── packages/
 │   ├── backend/          # Express API server
 │   │   ├── src/
@@ -405,5 +405,4 @@ AGPL-3.0
 
 ## Links
 
-- **Website:** [deployy.io](https://deployy.io)
-- **Issues:** [GitHub Issues](https://github.com/YOUR_USERNAME/deployy-panel/issues)
+- **Issues:** [GitHub Issues](https://github.com/MillerSpil/Deployy-Panel/issues)

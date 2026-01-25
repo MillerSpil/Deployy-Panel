@@ -4,6 +4,15 @@
   "private": true,
   "description": "Open-source multi-game server management platform",
   "license": "AGPL-3.0",
+  "author": "MillerSpil",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MillerSpil/Deployy-Panel.git"
+  },
+  "homepage": "https://github.com/MillerSpil/Deployy-Panel#readme",
+  "bugs": {
+    "url": "https://github.com/MillerSpil/Deployy-Panel/issues"
+  },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"

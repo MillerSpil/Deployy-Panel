@@ -1,6 +1,18 @@
 {
   "name": "@deployy/backend",
   "version": "0.1.0",
+  "description": "Deployy Panel backend API server",
+  "license": "AGPL-3.0",
+  "author": "MillerSpil",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MillerSpil/Deployy-Panel.git",
+    "directory": "packages/backend"
+  },
+  "homepage": "https://github.com/MillerSpil/Deployy-Panel#readme",
+  "bugs": {
+    "url": "https://github.com/MillerSpil/Deployy-Panel/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
