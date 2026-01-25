@@ -16,6 +16,7 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 - **Multi-User Support** - Create multiple users with different roles and access levels
 - **Cross-Platform** - Works on Windows and Linux
 - **Game Adapters** - Extensible architecture for adding new game support
+- **Panel Self-Updater** - Check for updates and update the panel from GitHub releases with one click
 - **Dark Theme** - Modern, eye-friendly interface
 
 ## Tech Stack
@@ -191,6 +192,19 @@ Server endpoints require authentication and appropriate permissions.
 | PATCH | `/api/roles/:id` | Update role | `roles.edit` |
 | DELETE | `/api/roles/:id` | Delete role | `roles.delete` |
 
+### Panel Updates (Protected)
+
+| Method | Endpoint | Description | Permission |
+|--------|----------|-------------|------------|
+| GET | `/api/update/status` | Check for updates | `panel.admin` |
+| GET | `/api/update/version` | Get current version | Any authenticated |
+| GET | `/api/update/settings` | Get panel settings | `panel.admin` |
+| PATCH | `/api/update/settings` | Update settings | `panel.admin` |
+| POST | `/api/update/apply` | Start update process | `panel.admin` |
+| GET | `/api/update/backups` | List update backups | `panel.admin` |
+| DELETE | `/api/update/backups/:backupId` | Delete backup | `panel.admin` |
+| POST | `/api/update/rollback/:backupId` | Rollback to backup | `panel.admin` |
+
 ### WebSocket Events
 
 ```typescript
@@ -204,6 +218,9 @@ socket.on('server:log', ({ serverId, line, timestamp }) => {});
 // Hytale download events
 socket.on('hytale:download:progress', ({ serverId, status, message, authUrl }) => {});
 socket.on('hytale:download:log', ({ serverId, line, timestamp }) => {});
+
+// Panel update events
+socket.on('update:progress', ({ status, message, progress, envChanges }) => {});
 ```
 
 ## Configuration
@@ -392,6 +409,61 @@ The Updates tab on Hytale server pages allows you to update your server files:
 
 **Note:** Updates require the server to be stopped to prevent file conflicts.
 
+## Panel Self-Updater
+
+The panel includes a built-in self-update system to keep your installation up to date.
+
+### Features
+
+- **Automatic Update Check** - Checks for updates on panel startup (can be disabled)
+- **Manual Update Check** - "Check for Updates" button in Admin Settings
+- **Release Notes** - View changelog before updating
+- **Automatic Backup** - Creates a full backup before each update
+- **Smart .env Merging** - Preserves your configuration, adds new options from updates
+- **Rollback Support** - Restore to any previous backup if needed
+- **Backup Management** - Delete old backups to free up disk space
+
+### How to Update
+
+1. Navigate to **Admin > Settings**
+2. Click **Check for Updates** (or wait for auto-check)
+3. Review the release notes
+4. Click **Update to vX.X.X**
+5. Wait for the update to complete
+6. **Restart the panel** to apply changes
+
+### Update Process
+
+1. **Backup** - Full backup of panel files (excludes node_modules, databases)
+2. **Download** - Fetches latest release from GitHub
+3. **Extract** - Extracts files to temporary location
+4. **Merge Config** - Merges .env with new .env.example (preserves your values)
+5. **Replace Files** - Updates panel files (preserves databases, backups, .env)
+6. **Install Dependencies** - Runs `pnpm install` for new dependencies
+
+### Rollback
+
+If an update causes issues:
+
+1. Navigate to **Admin > Settings**
+2. Find the backup in the **Update Backups** section
+3. Click **Rollback** on the desired backup
+4. Restart the panel
+
+### Configuration
+
+- **Auto-check updates** - Toggle in Admin Settings (enabled by default)
+
+### Preserved Files (Never Overwritten)
+
+The following are preserved during updates:
+- `.env` file (merged instead)
+- `*.db` database files
+- `backups/` directory
+- `update-backups/` directory
+- `node_modules/` (reinstalled)
+- `.git/` directory
+
 ## Supported Games
 
 | Game | Status | Notes |
@@ -433,7 +505,7 @@ pnpm lint         # Run ESLint
 - [x] Scheduled Tasks - Auto-restart, scheduled backups, and custom commands with cron scheduling
 - [x] Hytale Server Auto-Download - Automatically download server files during setup with OAuth
 - [x] Hytale Server Updater - Check for updates and update server files with one click
-- [ ] Panel Self-Updater - Check for new versions and one-click update
+- [x] Panel Self-Updater - Check for new versions and one-click update from GitHub releases
 - [ ] Mod manager
 - [ ] Minecraft Support - Adapter for Minecraft servers (Paper, Spigot, Fabric)
 - [ ] Docker Support - One-command deployment with Docker Compose

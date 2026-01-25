@@ -1,4 +1,4 @@
-import type { PerformanceMetrics, HytaleDownloadStatus } from './types';
+import type { PerformanceMetrics, HytaleDownloadStatus, UpdateStatus, EnvMergeResult } from './types';
 
 export interface ClientToServerEvents {
   'subscribe:server': (data: { serverId: string }) => void;
@@ -6,6 +6,8 @@ export interface ClientToServerEvents {
   command: (data: { serverId: string; command: string }) => void;
   'hytale:download:subscribe': (data: { serverId: string }) => void;
   'hytale:download:unsubscribe': (data: { serverId: string }) => void;
+  'update:subscribe': () => void;
+  'update:unsubscribe': () => void;
 }
 
 export interface ServerToClientEvents {
@@ -19,5 +21,11 @@ export interface ServerToClientEvents {
     authUrl?: string;
   }) => void;
   'hytale:download:log': (data: { serverId: string; line: string; timestamp: string }) => void;
+  'update:progress': (data: {
+    status: UpdateStatus;
+    message: string;
+    progress?: number;
+    envChanges?: EnvMergeResult;
+  }) => void;
   error: (data: { message: string; code?: string }) => void;
 }

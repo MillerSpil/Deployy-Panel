@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { UpdateProvider } from './contexts/UpdateContext';
 import { Layout } from './components/layout/Layout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { DashboardPage } from './pages/DashboardPage';
@@ -8,6 +9,7 @@ import { LoginPage } from './pages/LoginPage';
 import { SetupPage } from './pages/SetupPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { RolesPage } from './pages/admin/RolesPage';
+import { SettingsPage } from './pages/admin/SettingsPage';
 
 function AppRoutes() {
   const { needsSetup, user, loading } = useAuth();
@@ -78,6 +80,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/settings"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <SettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Catch-all redirect */}
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -89,7 +101,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <UpdateProvider>
+          <AppRoutes />
+        </UpdateProvider>
       </AuthProvider>
     </BrowserRouter>
   );

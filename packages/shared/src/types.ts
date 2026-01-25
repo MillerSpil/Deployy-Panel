@@ -273,3 +273,51 @@ export interface UpdateScheduledTaskInput {
   config?: ScheduledTaskConfig;
 }
 
+// Panel Update types
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'downloading'
+  | 'extracting'
+  | 'backing_up'
+  | 'merging_env'
+  | 'replacing_files'
+  | 'installing_deps'
+  | 'completed'
+  | 'error';
+
+export interface UpdateInfo {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  releaseUrl: string;
+  releaseNotes: string;
+  publishedAt: string;
+  downloadUrl: string;
+}
+
+export interface PanelSettings {
+  autoCheckUpdates: boolean;
+}
+
+export interface EnvMergeResult {
+  added: string[];
+  preserved: string[];
+  removed: string[];
+}
+
+export interface UpdateBackupInfo {
+  id: string;
+  version: string;
+  backupPath: string;
+  size: number;
+  createdAt: Date;
+}
+
+export interface UpdateProgress {
+  status: UpdateStatus;
+  message: string;
+  progress?: number;
+  envChanges?: EnvMergeResult;
+}
+

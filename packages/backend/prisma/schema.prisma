@@ -110,3 +110,18 @@ model ScheduledTask {
   @@index([enabled])
   @@index([nextRun])
 }
+
+model PanelSettings {
+  id        String   @id @default("default")
+  settings  String   @default("{}") // JSON: { autoCheckUpdates: boolean }
+  updatedAt DateTime @updatedAt
+}
+
+model UpdateBackup {
+  id         String   @id @default(uuid())
+  version    String   // Version before update
+  backupPath String   // Path to backup archive
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}

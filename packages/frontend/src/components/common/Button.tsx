@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'white';
   children: React.ReactNode;
 }
 
@@ -12,6 +12,7 @@ export function Button({ variant = 'primary', children, className = '', ...props
     primary: 'bg-primary-600 hover:bg-primary-700 text-white',
     secondary: 'bg-slate-700 hover:bg-slate-600 text-slate-200',
     danger: 'bg-red-600 hover:bg-red-700 text-white',
+    white: 'bg-white hover:bg-slate-100 text-primary-600',
   };
 
   return (

@@ -16,6 +16,7 @@ import { ServerAccessService } from './services/ServerAccessService.js';
 import { BackupService } from './services/BackupService.js';
 import { FileService } from './services/FileService.js';
 import { SchedulerService } from './services/SchedulerService.js';
+import { UpdateService } from './services/UpdateService.js';
 import { createServerRouter } from './routes/servers.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createRolesRouter } from './routes/roles.routes.js';
@@ -24,6 +25,7 @@ import { createServerAccessRouter } from './routes/serverAccess.routes.js';
 import { createBackupsRouter } from './routes/backups.routes.js';
 import { createFilesRouter } from './routes/files.routes.js';
 import { createSchedulesRouter } from './routes/schedules.routes.js';
+import { createUpdateRouter } from './routes/update.routes.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createPermissionMiddleware } from './middleware/permissions.js';
 import { setupWebSocketHandlers } from './websocket/handlers.js';
@@ -48,6 +50,7 @@ async function main() {
   const backupService = new BackupService(prisma);
   const fileService = new FileService(prisma);
   const schedulerService = new SchedulerService(prisma);
+  const updateService = new UpdateService(prisma);
 
   // Set scheduler dependencies and initialize
   schedulerService.setDependencies({
@@ -76,6 +79,11 @@ async function main() {
 
   serverService.setSocketServer(io);
   setupWebSocketHandlers(io, serverService, authService, permissionService);
+
+  // Wire up update progress events to WebSocket
+  updateService.on('progress', (progress) => {
+    io.emit('update:progress', progress);
+  });
 
   app.use(helmet());
   app.use(
@@ -144,10 +152,26 @@ async function main() {
   app.use('/api/roles', requireAuth, createRolesRouter(roleService, permissions));
   app.use('/api/users', requireAuth, createUsersRouter(userService, permissions));
 
+  // Update routes (mostly admin-only, but version endpoint is public)
+  app.use('/api/update', requireAuth, createUpdateRouter(updateService, permissions));
+
   app.use(errorHandler);
 
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, async () => {
     logger.info(`Server running on http://localhost:${PORT}`);
+
+    // Auto-check for updates on startup if enabled
+    try {
+      const settings = await updateService.getSettings();
+      if (settings.autoCheckUpdates) {
+        logger.info('Auto-checking for updates...');
+        updateService.checkForUpdates().catch((err) => {
+          logger.warn('Auto update check failed', { error: err.message });
+        });
+      }
+    } catch (err) {
+      logger.warn('Failed to check update settings', { error: err });
+    }
   });
 
   const shutdown = async () => {

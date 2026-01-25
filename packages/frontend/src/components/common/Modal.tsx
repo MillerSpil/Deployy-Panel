@@ -11,8 +11,14 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4 border border-slate-700">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4 border border-slate-700"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center p-4 border-b border-slate-700">
           <h2 className="text-xl font-semibold text-slate-100">{title}</h2>
           <button
