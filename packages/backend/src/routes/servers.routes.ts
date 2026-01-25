@@ -217,5 +217,20 @@ export const createServerRouter = (
     }
   );
 
+  // Start Hytale server download (requires admin)
+  router.post(
+    '/:id/download',
+    validateParams(z.object({ id: serverIdSchema })),
+    permissions.checkServerPermission(getServerId, 'admin'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        await serverService.startHytaleDownload(req.params.id);
+        res.json({ success: true, message: 'Download started' });
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+
   return router;
 };

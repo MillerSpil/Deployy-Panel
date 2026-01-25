@@ -29,6 +29,7 @@ export const createServerSchema = z.object({
     .min(1, 'At least 1 player slot required')
     .max(1000, 'Maximum 1000 players'),
   version: z.string().optional(),
+  autoDownload: z.boolean().optional(),
 });
 
 export const updateServerSchema = z.object({

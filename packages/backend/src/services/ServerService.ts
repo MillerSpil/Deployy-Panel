@@ -2,15 +2,17 @@ import { PrismaClient } from '@prisma/client';
 import type { Server as SocketServer } from 'socket.io';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { Server, InstallConfig, ServerToClientEvents, ClientToServerEvents, GameConfig } from '@deployy/shared';
+import type { Server, InstallConfig, ServerToClientEvents, ClientToServerEvents, GameConfig, HytaleDownloadStatus } from '@deployy/shared';
 import { AdapterFactory } from '../adapters/AdapterFactory.js';
 import { BaseAdapter } from '../adapters/BaseAdapter.js';
 import { PathValidator } from '../utils/paths.js';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { HytaleDownloadService } from './HytaleDownloadService.js';
 
 export class ServerService {
   private adapters: Map<string, BaseAdapter> = new Map();
+  private activeDownloads: Map<string, HytaleDownloadService> = new Map();
   private pathValidator: PathValidator;
   private io: SocketServer<ClientToServerEvents, ServerToClientEvents> | null = null;
 
@@ -72,7 +74,16 @@ export class ServerService {
     const serverPath = data.path;
 
     if (serverPath.includes('..')) {
-      throw new Error('Invalid path: directory traversal not allowed');
+      throw new AppError(400, 'Invalid path: directory traversal not allowed');
+    }
+
+    // Check if a server with the same port already exists
+    const existingServer = await this.prisma.server.findFirst({
+      where: { port: data.port },
+    });
+
+    if (existingServer) {
+      throw new AppError(409, `Port ${data.port} is already in use by server "${existingServer.name}"`);
     }
 
     const server = await this.prisma.server.create({
@@ -113,6 +124,74 @@ export class ServerService {
       await this.prisma.server.delete({ where: { id: server.id } });
       throw error;
     }
+  }
+
+  async startHytaleDownload(serverId: string): Promise<void> {
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) {
+      throw new AppError(404, 'Server not found');
+    }
+
+    if (server.gameType !== 'hytale') {
+      throw new AppError(400, 'Auto-download is only available for Hytale servers');
+    }
+
+    if (this.activeDownloads.has(serverId)) {
+      throw new AppError(409, 'Download already in progress');
+    }
+
+    const downloadService = new HytaleDownloadService(server.path);
+    this.activeDownloads.set(serverId, downloadService);
+
+    // Wire up events
+    downloadService.on('progress', (progress: { status: HytaleDownloadStatus; message: string; authUrl?: string }) => {
+      logger.info('Download progress event received', { serverId, status: progress.status, hasIo: !!this.io });
+      if (this.io) {
+        this.io.emit('hytale:download:progress', {
+          serverId,
+          status: progress.status,
+          message: progress.message,
+          authUrl: progress.authUrl,
+        });
+        logger.info('Emitted hytale:download:progress via WebSocket');
+      } else {
+        logger.warn('No socket.io instance available!');
+      }
+
+      // Cleanup on completion or error
+      if (progress.status === 'completed' || progress.status === 'error') {
+        this.activeDownloads.delete(serverId);
+      }
+    });
+
+    downloadService.on('log', (line: string) => {
+      if (this.io) {
+        this.io.emit('hytale:download:log', {
+          serverId,
+          line,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+
+    // Start download in background (don't await)
+    downloadService.download().catch((error) => {
+      logger.error('Hytale download failed', { serverId, error });
+      this.activeDownloads.delete(serverId);
+    });
+
+    logger.info(`Started Hytale download for server ${serverId}`);
+  }
+
+  cancelHytaleDownload(serverId: string): boolean {
+    const download = this.activeDownloads.get(serverId);
+    if (download) {
+      download.abort();
+      this.activeDownloads.delete(serverId);
+      logger.info(`Cancelled Hytale download for server ${serverId}`);
+      return true;
+    }
+    return false;
   }
 
   async deleteServer(id: string): Promise<void> {

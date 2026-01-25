@@ -3,6 +3,7 @@ import { Modal } from '../common/Modal';
 import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { serversApi } from '@/api/servers';
+import { HytaleDownloadModal } from './HytaleDownloadModal';
 
 interface CreateServerModalProps {
   isOpen: boolean;
@@ -17,9 +18,11 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
     path: '',
     port: 5520,
     maxPlayers: 100,
+    autoDownload: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadModal, setDownloadModal] = useState<{ serverId: string; serverName: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,15 +36,29 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
     }
 
     try {
-      await serversApi.create(formData);
-      setFormData({ name: '', gameType: 'hytale', path: '', port: 5520, maxPlayers: 100 });
-      onCreated();
-      onClose();
+      const server = await serversApi.create(formData);
+
+      // If auto-download is enabled for Hytale, show download modal
+      if (formData.autoDownload && formData.gameType === 'hytale') {
+        // Don't start download here - let the modal do it after mounting
+        setDownloadModal({ serverId: server.id, serverName: server.name });
+      } else {
+        setFormData({ name: '', gameType: 'hytale', path: '', port: 5520, maxPlayers: 100, autoDownload: false });
+        onCreated();
+        onClose();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create server');
-    } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadComplete = () => {
+    setDownloadModal(null);
+    setFormData({ name: '', gameType: 'hytale', path: '', port: 5520, maxPlayers: 100, autoDownload: false });
+    setLoading(false);
+    onCreated();
+    onClose();
   };
 
   return (
@@ -97,6 +114,26 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
           required
         />
 
+        {/* Auto-download checkbox - only for Hytale */}
+        {formData.gameType === 'hytale' && (
+          <div className="mb-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.autoDownload}
+                onChange={(e) => setFormData({ ...formData, autoDownload: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-primary-500 focus:ring-primary-500 focus:ring-offset-slate-800"
+              />
+              <div>
+                <span className="text-sm font-medium text-slate-300">Auto-download server files</span>
+                <p className="text-xs text-slate-500">
+                  Download HytaleServer.jar and Assets automatically from Hytale servers
+                </p>
+              </div>
+            </label>
+          </div>
+        )}
+
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
         <div className="flex gap-2">
@@ -108,6 +145,17 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
           </Button>
         </div>
       </form>
+
+      {/* Download Progress Modal */}
+      {downloadModal && (
+        <HytaleDownloadModal
+          isOpen={true}
+          onClose={handleDownloadComplete}
+          serverId={downloadModal.serverId}
+          serverName={downloadModal.serverName}
+          startDownload={() => serversApi.startDownload(downloadModal.serverId)}
+        />
+      )}
     </Modal>
   );
 }

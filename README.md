@@ -124,6 +124,7 @@ Server endpoints require authentication and appropriate permissions.
 | POST | `/api/servers/:id/restart` | Restart server | Operator+ |
 | GET | `/api/servers/:id/config` | Get server config | Admin+ |
 | PATCH | `/api/servers/:id/config` | Update server config | Admin+ |
+| POST | `/api/servers/:id/download` | Start Hytale server file download | Admin+ |
 
 ### Backups (Protected)
 
@@ -199,6 +200,10 @@ socket.emit('subscribe:server', { serverId: string });
 // Server events
 socket.on('server:status', ({ serverId, status }) => {});
 socket.on('server:log', ({ serverId, line, timestamp }) => {});
+
+// Hytale download events
+socket.on('hytale:download:progress', ({ serverId, status, message, authUrl }) => {});
+socket.on('hytale:download:log', ({ serverId, line, timestamp }) => {});
 ```
 
 ## Configuration
@@ -353,11 +358,27 @@ The Schedules tab on each server page provides automated task scheduling:
 | Weekly on Sunday | Runs at midnight every Sunday |
 | Weekly on Monday | Runs at midnight every Monday |
 
+## Hytale Server Auto-Download
+
+When creating a new Hytale server, you can enable automatic download of server files:
+
+1. **Check "Auto-download server files"** when creating a new Hytale server
+2. After clicking Create, a download modal appears showing real-time progress
+3. The panel downloads the official Hytale downloader tool
+4. **OAuth Authentication** - Click the "Authenticate" button when prompted to sign in with your Hytale account
+5. After authentication, server files are automatically downloaded and extracted
+6. Temporary files are cleaned up automatically
+
+The download includes:
+- `HytaleServer.jar` - The server executable
+- `Assets.zip` - Game assets required for the server
+- `config.json` - Default server configuration
+
 ## Supported Games
 
 | Game | Status | Notes |
 |------|--------|-------|
-| Hytale | Active | Full support |
+| Hytale | Active | Full support with auto-download |
 | Minecraft | Planned | Coming soon |
 
 ## Development
@@ -392,8 +413,8 @@ pnpm lint         # Run ESLint
 - [x] Backup system
 - [x] File Manager - Browse, edit, upload, and download server files with Monaco Editor
 - [x] Scheduled Tasks - Auto-restart, scheduled backups, and custom commands with cron scheduling
+- [x] Hytale Server Auto-Download - Automatically download server files during setup with OAuth
 - [ ] Panel Self-Updater - Check for new versions and one-click update
-- [ ] Hytale Server Auto-Download - Automatically download server files during setup
 - [ ] Hytale Server Updater - Check for and apply Hytale server updates
 - [ ] Mod manager
 - [ ] Minecraft Support - Adapter for Minecraft servers (Paper, Spigot, Fabric)

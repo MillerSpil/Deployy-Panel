@@ -107,7 +107,9 @@ export class HytaleAdapter extends BaseAdapter {
     this.emitLog(`Starting server...`);
     logger.info(`Starting Hytale server: ${this.server.id}`);
 
-    const jarPath = path.join(this.server.path, 'HytaleServer.jar');
+    // Server files are in Server/ subfolder, Assets.zip is at root
+    const serverSubfolder = path.join(this.server.path, 'Server');
+    const jarPath = path.join(serverSubfolder, 'HytaleServer.jar');
     const assetsPath = path.join(this.server.path, 'Assets.zip');
 
     const serverPathExists = await this.fileExists(this.server.path);
@@ -123,7 +125,7 @@ export class HytaleAdapter extends BaseAdapter {
     if (!jarExists) {
       const errorMsg = `HytaleServer.jar not found at: ${jarPath}`;
       this.emitLog(`[ERROR] ${errorMsg}`);
-      this.emitLog(`[INFO] Please place HytaleServer.jar in the server directory`);
+      this.emitLog(`[INFO] Please ensure server files are downloaded (Server/HytaleServer.jar)`);
       logger.error(errorMsg);
       this.setStatus('crashed');
       throw new Error(errorMsg);
@@ -133,7 +135,7 @@ export class HytaleAdapter extends BaseAdapter {
     if (!assetsExists) {
       const errorMsg = `Assets.zip not found at: ${assetsPath}`;
       this.emitLog(`[ERROR] ${errorMsg}`);
-      this.emitLog(`[INFO] Please place Assets.zip in the server directory`);
+      this.emitLog(`[INFO] Please ensure Assets.zip is in the server directory`);
       logger.error(errorMsg);
       this.setStatus('crashed');
       throw new Error(errorMsg);
@@ -157,8 +159,9 @@ export class HytaleAdapter extends BaseAdapter {
     logger.info(`Command: ${javaCmd} ${args.join(' ')}`);
 
     try {
+      // Run from Server/ subfolder so AOT cache works correctly
       this.process = spawn(javaCmd, args, {
-        cwd: this.server.path,
+        cwd: serverSubfolder,
         shell: false,
         stdio: ['pipe', 'pipe', 'pipe'],
       });

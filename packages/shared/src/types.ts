@@ -2,6 +2,17 @@ export type GameType = 'hytale' | 'minecraft';
 
 export type ServerStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed';
 
+// Hytale server download status
+export type HytaleDownloadStatus =
+  | 'downloading_tool'
+  | 'extracting_tool'
+  | 'waiting_auth'
+  | 'downloading_server'
+  | 'extracting_server'
+  | 'cleanup'
+  | 'completed'
+  | 'error';
+
 export interface Server {
   id: string;
   name: string;
