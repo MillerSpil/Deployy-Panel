@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { UpdateService } from '../services/UpdateService.js';
-import { validate } from '../middleware/validation.js';
+import { validate, validateParams } from '../middleware/validation.js';
 import type { PermissionMiddleware } from '../middleware/permissions.js';
 import { logger } from '../utils/logger.js';
 
@@ -9,9 +9,25 @@ const updateSettingsSchema = z.object({
   autoCheckUpdates: z.boolean().optional(),
 });
 
+// SECURITY: Only allow GitHub releases from the official repository
+const ALLOWED_DOWNLOAD_ORIGINS = [
+  'https://github.com/MillerSpil/Deployy-Panel/',
+  'https://codeload.github.com/MillerSpil/Deployy-Panel/',
+];
+
 const applyUpdateSchema = z.object({
-  downloadUrl: z.string().url(),
-  targetVersion: z.string(),
+  downloadUrl: z
+    .string()
+    .url()
+    .refine(
+      (url) => ALLOWED_DOWNLOAD_ORIGINS.some((origin) => url.startsWith(origin)),
+      'Download URL must be from the official Deployy Panel GitHub repository'
+    ),
+  targetVersion: z.string().regex(/^\d+\.\d+\.\d+$/, 'Invalid version format'),
+});
+
+const backupIdSchema = z.object({
+  backupId: z.string().uuid('Invalid backup ID format'),
 });
 
 export function createUpdateRouter(
@@ -120,6 +136,7 @@ export function createUpdateRouter(
   router.delete(
     '/backups/:backupId',
     permissions.requireAdmin,
+    validateParams(backupIdSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         await updateService.deleteBackup(req.params.backupId);
@@ -134,6 +151,7 @@ export function createUpdateRouter(
   router.post(
     '/rollback/:backupId',
     permissions.requireAdmin,
+    validateParams(backupIdSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         if (updateService.isUpdateInProgress()) {

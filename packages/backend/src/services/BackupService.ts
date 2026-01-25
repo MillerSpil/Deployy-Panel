@@ -1,15 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import fs from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
+import { createWriteStream, createReadStream } from 'node:fs';
 import path from 'node:path';
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
 import archiver from 'archiver';
+import unzipper from 'unzipper';
 import type { Backup } from '@deployy/shared';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
-
-const execAsync = promisify(exec);
 
 interface BackupResult {
   size: number;
@@ -415,33 +412,27 @@ export class BackupService {
   private async extractZipArchive(zipPath: string, outputPath: string): Promise<void> {
     logger.info('Starting zip extraction', { zipPath, outputPath });
 
-    try {
-      // Use PowerShell's Expand-Archive for reliable extraction on Windows
-      // This handles the same zip formats that Windows Explorer can open
-      const psCommand = `Expand-Archive -Path "${zipPath}" -DestinationPath "${outputPath}" -Force`;
+    // SECURITY: Use unzipper library instead of shell commands to prevent command injection
+    return new Promise((resolve, reject) => {
+      const readStream = createReadStream(zipPath);
+      const extractor = unzipper.Extract({ path: outputPath });
 
-      logger.info('Running PowerShell extraction', { command: psCommand });
+      readStream
+        .pipe(extractor)
+        .on('close', () => {
+          logger.info('Zip extraction completed', { zipPath, outputPath });
+          resolve();
+        })
+        .on('error', (err) => {
+          logger.error('Zip extraction failed', { zipPath, outputPath, error: err });
+          reject(new Error(`Failed to extract backup: ${err.message}`));
+        });
 
-      const { stdout, stderr } = await execAsync(`powershell -Command "${psCommand}"`, {
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer for output
+      readStream.on('error', (err) => {
+        logger.error('Failed to read zip file', { zipPath, error: err });
+        reject(new Error(`Failed to read backup file: ${err.message}`));
       });
-
-      if (stderr && !stderr.includes('WARNING')) {
-        logger.warn('PowerShell stderr', { stderr });
-      }
-
-      logger.info('Zip extraction completed', { zipPath, outputPath, stdout });
-    } catch (err: any) {
-      logger.error('Zip extraction failed', {
-        zipPath,
-        outputPath,
-        errorMessage: err.message,
-        errorCode: err.code,
-        stderr: err.stderr,
-        stdout: err.stdout
-      });
-      throw new Error(`Failed to extract backup: ${err.message}`);
-    }
+    });
   }
 
   private transformBackup(backup: any): Backup {

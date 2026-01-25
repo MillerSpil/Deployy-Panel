@@ -13,6 +13,14 @@ import {
 import { z } from 'zod';
 import type { PermissionMiddleware } from '../middleware/permissions.js';
 
+// SECURITY: Schema for game config validation
+const gameConfigSchema = z.object({
+  ServerName: z.string().min(1).max(100).optional(),
+  MOTD: z.string().max(500).optional(),
+  MaxPlayers: z.number().int().min(1).max(10000).optional(),
+  MaxViewRadius: z.number().int().min(1).max(64).optional(),
+}).passthrough(); // Allow additional game-specific fields
+
 export const createServerRouter = (
   serverService: ServerService,
   permissionService: PermissionService,
@@ -206,6 +214,7 @@ export const createServerRouter = (
     '/:id/config',
     validateParams(z.object({ id: serverIdSchema })),
     permissions.checkServerPermission(getServerId, 'admin'),
+    validate(gameConfigSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const config = await serverService.updateServerConfig(req.params.id, req.body);

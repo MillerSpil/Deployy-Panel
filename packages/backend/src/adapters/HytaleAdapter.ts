@@ -1,5 +1,5 @@
 import { BaseAdapter } from './BaseAdapter.js';
-import { spawn, execSync } from 'node:child_process';
+import { spawn, execSync, spawnSync } from 'node:child_process';
 import { mkdir, writeFile, readFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -8,6 +8,14 @@ import { logger } from '../utils/logger.js';
 
 function stripAnsi(str: string): string {
   return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '').replace(/\[[\d;]*m/g, '');
+}
+
+// SECURITY: Validate path doesn't contain shell metacharacters
+function isValidJavaPath(javaPath: string): boolean {
+  // Allow alphanumeric, spaces, hyphens, underscores, dots, colons (drive letters), slashes, and backslashes
+  // Reject shell metacharacters like $, `, ", ', ;, |, &, <, >, (, ), {, }, [, ], !, ^, ~, *
+  const safePathRegex = /^[a-zA-Z0-9\s\-_./\\:]+$/;
+  return safePathRegex.test(javaPath);
 }
 
 function findJavaPath(): string {
@@ -19,8 +27,13 @@ function findJavaPath(): string {
     const result = execSync(whereCmd, { encoding: 'utf-8', timeout: 5000 }).trim();
     if (result) {
       const firstPath = result.split('\n')[0].trim();
-      logger.info(`Found Java at: ${firstPath}`);
-      return firstPath;
+      // SECURITY: Validate the path from where/which doesn't contain shell metacharacters
+      if (!isValidJavaPath(firstPath)) {
+        logger.warn('Java path from PATH contains invalid characters, ignoring', { path: firstPath });
+      } else {
+        logger.info(`Found Java at: ${firstPath}`);
+        return firstPath;
+      }
     }
   } catch {
     logger.warn('Java not found in PATH, checking common locations...');
@@ -37,9 +50,16 @@ function findJavaPath(): string {
 
     for (const javaPath of commonPaths) {
       try {
-        execSync(`"${javaPath}" -version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
-        logger.info(`Found Java at: ${javaPath}`);
-        return javaPath;
+        // SECURITY: Use spawnSync instead of execSync to avoid shell interpretation
+        const result = spawnSync(javaPath, ['-version'], {
+          encoding: 'utf-8',
+          timeout: 5000,
+          stdio: 'pipe',
+        });
+        if (result.status === 0 || result.stderr?.includes('version')) {
+          logger.info(`Found Java at: ${javaPath}`);
+          return javaPath;
+        }
       } catch {}
     }
   }

@@ -7,11 +7,15 @@ import os from 'node:os';
 import https from 'node:https';
 import { pipeline } from 'node:stream/promises';
 import archiver from 'archiver';
+import unzipper from 'unzipper';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { logger } from '../utils/logger.js';
+
+// Only used for trusted commands (pnpm install), not user input
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,8 +28,6 @@ import type {
   UpdateBackupInfo,
   UpdateProgress,
 } from '@deployy/shared';
-
-const execAsync = promisify(exec);
 
 const GITHUB_API_URL = 'https://api.github.com/repos/MillerSpil/Deployy-Panel/releases/latest';
 const DEFAULT_SETTINGS: PanelSettings = { autoCheckUpdates: true };
@@ -452,20 +454,27 @@ This is **test mode** data. Set UPDATE_TEST_MODE=false to check real GitHub rele
   }
 
   private async extractZip(zipPath: string, destPath: string): Promise<void> {
-    const isWindows = os.platform() === 'win32';
+    // SECURITY: Use unzipper library instead of shell commands to prevent command injection
+    return new Promise((resolve, reject) => {
+      const readStream = createReadStream(zipPath);
+      const extractor = unzipper.Extract({ path: destPath });
 
-    if (isWindows) {
-      // Use PowerShell on Windows
-      const psCommand = `Expand-Archive -Path "${zipPath}" -DestinationPath "${destPath}" -Force`;
-      await execAsync(`powershell -Command "${psCommand}"`, {
-        maxBuffer: 10 * 1024 * 1024,
+      readStream
+        .pipe(extractor)
+        .on('close', () => {
+          logger.info('Zip extraction completed', { zipPath, destPath });
+          resolve();
+        })
+        .on('error', (err) => {
+          logger.error('Zip extraction failed', { zipPath, destPath, error: err });
+          reject(err);
+        });
+
+      readStream.on('error', (err) => {
+        logger.error('Failed to read zip file', { zipPath, error: err });
+        reject(err);
       });
-    } else {
-      // Use unzip on Linux
-      await execAsync(`unzip -o "${zipPath}" -d "${destPath}"`, {
-        maxBuffer: 10 * 1024 * 1024,
-      });
-    }
+    });
   }
 
   private async mergeEnvFiles(releasePath: string): Promise<EnvMergeResult> {

@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { PANEL_PERMISSIONS } from '@deployy/shared';
 import type { AuthUser, AuthUserWithPermissions, PanelPermission } from '@deployy/shared';
 
 const BCRYPT_ROUNDS = 14;
@@ -35,14 +36,19 @@ export class AuthService {
       throw new AppError(409, 'Email already registered');
     }
 
-    // For first user, find the Admin role
-    let roleId: string | undefined;
-    const adminRole = await this.prisma.role.findFirst({
-      where: { name: 'Admin', isSystem: true },
+    // For first user, find or create the Admin role
+    // This ensures first user always gets admin even if seed wasn't run
+    const adminRole = await this.prisma.role.upsert({
+      where: { name: 'Admin' },
+      update: {}, // Don't modify if exists
+      create: {
+        name: 'Admin',
+        description: 'Full system administrator with all permissions',
+        permissions: JSON.stringify([...PANEL_PERMISSIONS]),
+        isSystem: true,
+      },
     });
-    if (adminRole) {
-      roleId = adminRole.id;
-    }
+    const roleId = adminRole.id;
 
     // Hash password - NEVER log the password
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
@@ -55,7 +61,7 @@ export class AuthService {
       },
     });
 
-    logger.info('User registered', { userId: user.id, assignedRole: roleId ? 'Admin' : 'none' });
+    logger.info('User registered', { userId: user.id, assignedRole: 'Admin' });
 
     return { id: user.id, email: user.email };
   }

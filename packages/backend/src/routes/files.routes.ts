@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import { z } from 'zod';
 import { FileService } from '../services/FileService.js';
 import { validate } from '../middleware/validation.js';
 import {
@@ -13,6 +14,38 @@ import {
 } from '@deployy/shared';
 import type { PermissionMiddleware } from '../middleware/permissions.js';
 import { AppError } from '../middleware/errorHandler.js';
+
+// SECURITY: Zod schema for path query parameter validation
+const pathQuerySchema = z
+  .string()
+  .default('')
+  .refine((p) => !p.includes('..'), 'Path cannot contain ".."');
+
+// SECURITY: Sanitize uploaded filename - remove path separators and dangerous characters
+function sanitizeFilename(filename: string): string {
+  // Remove path separators and null bytes
+  let sanitized = filename.replace(/[/\\:\x00]/g, '_');
+  // Remove leading dots (prevents hidden files and directory traversal)
+  sanitized = sanitized.replace(/^\.+/, '');
+  // Remove any remaining dangerous characters
+  sanitized = sanitized.replace(/[<>"|?*]/g, '_');
+  // Ensure not empty
+  if (!sanitized || sanitized === '_') {
+    sanitized = 'uploaded_file';
+  }
+  // Limit length
+  if (sanitized.length > 255) {
+    const ext = sanitized.lastIndexOf('.');
+    if (ext > 0) {
+      const name = sanitized.slice(0, ext);
+      const extension = sanitized.slice(ext);
+      sanitized = name.slice(0, 255 - extension.length) + extension;
+    } else {
+      sanitized = sanitized.slice(0, 255);
+    }
+  }
+  return sanitized;
+}
 
 // Configure multer for file uploads (store in memory, 50MB limit)
 const upload = multer({
@@ -37,7 +70,12 @@ export const createFilesRouter = (
     permissions.checkServerPermission(getServerId, 'admin'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const dirPath = (req.query.path as string) || '';
+        // SECURITY: Validate query param with Zod
+        const parseResult = pathQuerySchema.safeParse(req.query.path);
+        if (!parseResult.success) {
+          throw new AppError(400, parseResult.error.errors[0]?.message || 'Invalid path');
+        }
+        const dirPath = parseResult.data;
         const files = await fileService.listFiles(req.params.serverId, dirPath);
         res.json({ files, path: dirPath });
       } catch (error) {
@@ -52,10 +90,15 @@ export const createFilesRouter = (
     permissions.checkServerPermission(getServerId, 'admin'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const filePath = req.query.path as string;
-        if (!filePath) {
-          throw new AppError(400, 'File path is required');
+        // SECURITY: Validate query param with Zod
+        const parseResult = z.string().min(1, 'File path is required').refine(
+          (p) => !p.includes('..'),
+          'Path cannot contain ".."'
+        ).safeParse(req.query.path);
+        if (!parseResult.success) {
+          throw new AppError(400, parseResult.error.errors[0]?.message || 'Invalid path');
         }
+        const filePath = parseResult.data;
         const content = await fileService.readFile(req.params.serverId, filePath);
         res.json(content);
       } catch (error) {
@@ -138,10 +181,15 @@ export const createFilesRouter = (
     permissions.checkServerPermission(getServerId, 'admin'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const filePath = req.query.path as string;
-        if (!filePath) {
-          throw new AppError(400, 'File path is required');
+        // SECURITY: Validate query param with Zod
+        const parseResult = z.string().min(1, 'File path is required').refine(
+          (p) => !p.includes('..'),
+          'Path cannot contain ".."'
+        ).safeParse(req.query.path);
+        if (!parseResult.success) {
+          throw new AppError(400, parseResult.error.errors[0]?.message || 'Invalid path');
         }
+        const filePath = parseResult.data;
 
         const { fullPath, filename, size } = await fileService.getDownloadPath(
           req.params.serverId,
@@ -171,11 +219,20 @@ export const createFilesRouter = (
           throw new AppError(400, 'No file provided');
         }
 
-        const targetPath = (req.body.targetPath as string) || '';
+        // SECURITY: Validate and sanitize inputs
+        const targetPathResult = pathQuerySchema.safeParse(req.body.targetPath);
+        if (!targetPathResult.success) {
+          throw new AppError(400, targetPathResult.error.errors[0]?.message || 'Invalid target path');
+        }
+        const targetPath = targetPathResult.data;
+
+        // SECURITY: Sanitize uploaded filename
+        const safeFilename = sanitizeFilename(req.file.originalname);
+
         const file = await fileService.handleUpload(
           req.params.serverId,
           targetPath,
-          req.file.originalname,
+          safeFilename,
           req.file.buffer
         );
 

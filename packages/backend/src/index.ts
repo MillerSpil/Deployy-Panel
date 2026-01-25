@@ -87,7 +87,26 @@ async function main() {
     io.emit('update:progress', progress);
   });
 
-  app.use(helmet());
+  // SECURITY: Configure helmet with Content Security Policy
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for React
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          fontSrc: ["'self'"],
+          connectSrc: ["'self'", 'ws:', 'wss:'], // Allow WebSocket connections
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          formAction: ["'self'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+      crossOriginEmbedderPolicy: false, // Disable for development compatibility
+    })
+  );
   app.use(
     cors({
       origin: corsOrigin,
