@@ -112,7 +112,7 @@ export function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-slate-100 mb-8">Panel Settings</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-6 sm:mb-8">Panel Settings</h1>
 
       {(error || settingsError) && (
         <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
@@ -126,14 +126,14 @@ export function SettingsPage() {
 
         <div className="space-y-4">
           {/* Current Version */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-slate-400">Current Version:</span>
               <span className="ml-2 text-slate-100 font-mono">
                 {currentVersion ? `v${currentVersion}` : 'Loading...'}
               </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
               {lastCheckMessage && !isChecking && (
                 <span className="text-sm text-slate-400">{lastCheckMessage}</span>
               )}
@@ -145,6 +145,7 @@ export function SettingsPage() {
                   setLastCheckMessage(`Checked at ${now}`);
                 }}
                 disabled={isChecking || isUpdating}
+                className="w-full sm:w-auto"
               >
                 {isChecking ? 'Checking...' : 'Check for Updates'}
               </Button>
@@ -152,12 +153,12 @@ export function SettingsPage() {
           </div>
 
           {/* Auto-check Toggle */}
-          <div className="flex items-center justify-between border-t border-slate-700 pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-700 pt-4">
             <div>
               <p className="text-slate-100">Automatically check for updates</p>
               <p className="text-slate-400 text-sm">Check for updates when the panel starts</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
               <input
                 type="checkbox"
                 checked={settings?.autoCheckUpdates ?? true}
@@ -172,16 +173,16 @@ export function SettingsPage() {
           {updateInfo?.updateAvailable && (
             <div className="border-t border-slate-700 pt-4">
               <div className="bg-primary-900/30 border border-primary-700 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                   <div>
-                    <h3 className="text-lg font-medium text-primary-300">
+                    <h3 className="text-base sm:text-lg font-medium text-primary-300">
                       Update Available: v{updateInfo.latestVersion}
                     </h3>
                     <p className="text-slate-400 text-sm">
                       Published {formatDate(updateInfo.publishedAt)}
                     </p>
                   </div>
-                  <Button onClick={applyUpdate} disabled={isUpdating}>
+                  <Button onClick={applyUpdate} disabled={isUpdating} className="w-full sm:w-auto">
                     {isUpdating ? 'Updating...' : `Update to v${updateInfo.latestVersion}`}
                   </Button>
                 </div>

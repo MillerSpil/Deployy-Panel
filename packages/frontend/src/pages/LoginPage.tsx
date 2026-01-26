@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
+import logo from '../assets/logo.svg';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
       <div className="bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-8 border border-slate-700">
+        <img src={logo} alt="Deployy" className="h-16 w-16 rounded-xl mx-auto mb-4" />
         <h1 className="text-2xl font-bold text-slate-100 text-center mb-2">
           Deployy Panel
         </h1>

@@ -15,10 +15,10 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-slate-900 flex flex-col">
       <UpdateBanner />
       <Header />
-      <main className="container mx-auto px-4 py-8 flex-1">{children}</main>
+      <main className="container mx-auto px-4 py-4 sm:py-8 flex-1">{children}</main>
       <footer className="bg-slate-800 border-t border-slate-700 py-4">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center text-sm text-slate-400">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-2 text-sm text-slate-400">
             <span>Deployy Panel</span>
             <span>{currentVersion ? `v${currentVersion}` : ''}</span>
           </div>

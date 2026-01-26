@@ -148,9 +148,9 @@ export function ServerPage() {
       </Button>
 
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 mb-6">
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-slate-100 mb-2">{server.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-2">{server.name}</h1>
             <p className="text-slate-400">{server.gameType}</p>
           </div>
           <StatusBadge status={server.status} />
@@ -177,13 +177,13 @@ export function ServerPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 h-10">
+        <div className="flex flex-wrap gap-2">
           {canOperate && (
             <>
               <Button
                 onClick={handleStart}
                 variant="primary"
-                className="min-w-[100px]"
+                className="flex-1 sm:flex-none min-w-[80px]"
                 disabled={server.status === 'running' || server.status === 'starting' || actionLoading !== null}
               >
                 {actionLoading === 'start' ? (
@@ -197,7 +197,7 @@ export function ServerPage() {
               <Button
                 onClick={handleStop}
                 variant="danger"
-                className="min-w-[100px]"
+                className="flex-1 sm:flex-none min-w-[80px]"
                 disabled={server.status !== 'running' || actionLoading !== null}
               >
                 {actionLoading === 'stop' ? (
@@ -211,7 +211,7 @@ export function ServerPage() {
               <Button
                 onClick={handleRestart}
                 variant="secondary"
-                className="min-w-[110px]"
+                className="flex-1 sm:flex-none min-w-[80px]"
                 disabled={server.status !== 'running' || actionLoading !== null}
               >
                 {actionLoading === 'restart' ? (
@@ -228,7 +228,7 @@ export function ServerPage() {
             <Button
               onClick={handleDelete}
               variant="danger"
-              className="ml-auto min-w-[100px]"
+              className="w-full sm:w-auto sm:ml-auto min-w-[80px]"
               disabled={actionLoading !== null}
             >
               {actionLoading === 'delete' ? (
@@ -244,8 +244,8 @@ export function ServerPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-slate-700 mb-6">
-        <nav className="flex gap-4">
+      <div className="border-b border-slate-700 mb-6 -mx-4 px-4 overflow-x-auto">
+        <nav className="flex gap-1 sm:gap-4 min-w-max">
           <TabButton
             active={activeTab === 'console'}
             onClick={() => setActiveTab('console')}
@@ -362,7 +362,7 @@ function TabButton({ active, onClick, children }: TabButtonProps) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+      className={`px-2 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
         active
           ? 'text-primary-400 border-primary-400'
           : 'text-slate-400 border-transparent hover:text-slate-200 hover:border-slate-600'

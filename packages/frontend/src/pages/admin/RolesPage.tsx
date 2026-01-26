@@ -90,9 +90,9 @@ export function RolesPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-slate-100">Roles</h1>
-        {canCreateRole && <Button onClick={() => setIsCreateModalOpen(true)}>Create Role</Button>}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-100">Roles</h1>
+        {canCreateRole && <Button onClick={() => setIsCreateModalOpen(true)} className="w-full sm:w-auto">Create Role</Button>}
       </div>
 
       <div className="grid gap-4">
@@ -101,10 +101,10 @@ export function RolesPage() {
             key={role.id}
             className="bg-slate-800 rounded-lg border border-slate-700 p-6"
           >
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold text-slate-100">{role.name}</h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg sm:text-xl font-semibold text-slate-100">{role.name}</h2>
                   {role.isSystem && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-600 text-slate-300">
                       System
@@ -112,17 +112,17 @@ export function RolesPage() {
                   )}
                 </div>
                 {role.description && (
-                  <p className="text-slate-400 mt-1">{role.description}</p>
+                  <p className="text-slate-400 mt-1 text-sm sm:text-base">{role.description}</p>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 {canEditRole && !role.isSystem && (
-                  <Button variant="secondary" onClick={() => setEditingRole(role)}>
+                  <Button variant="secondary" onClick={() => setEditingRole(role)} className="flex-1 sm:flex-none">
                     Edit
                   </Button>
                 )}
                 {canDeleteRole && !role.isSystem && (
-                  <Button variant="danger" onClick={() => setDeletingRole(role)}>
+                  <Button variant="danger" onClick={() => setDeletingRole(role)} className="flex-1 sm:flex-none">
                     Delete
                   </Button>
                 )}

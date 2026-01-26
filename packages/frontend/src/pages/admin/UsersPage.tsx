@@ -65,13 +65,13 @@ export function UsersPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-slate-100">Users</h1>
-        {canCreateUser && <Button onClick={() => setIsCreateModalOpen(true)}>Create User</Button>}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-100">Users</h1>
+        {canCreateUser && <Button onClick={() => setIsCreateModalOpen(true)} className="w-full sm:w-auto">Create User</Button>}
       </div>
 
-      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-        <table className="w-full">
+      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-x-auto">
+        <table className="w-full min-w-[600px]">
           <thead className="bg-slate-700">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-medium text-slate-300">Email</th>

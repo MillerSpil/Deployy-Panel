@@ -63,10 +63,10 @@ export function DashboardPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-slate-100">Servers</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-100">Servers</h1>
         {canCreateServer && (
-          <Button onClick={() => setIsCreateModalOpen(true)}>Create Server</Button>
+          <Button onClick={() => setIsCreateModalOpen(true)} className="w-full sm:w-auto">Create Server</Button>
         )}
       </div>
 
