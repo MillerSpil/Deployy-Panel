@@ -1,6 +1,13 @@
-# Deployy Panel
+<p align="center">
+  <img src="docs/logo.svg" alt="Deployy Panel" width="128" height="128">
+</p>
 
-Open-source, multi-game server management platform. Start with Hytale, expand to Minecraft and beyond.
+<h1 align="center">Deployy Panel</h1>
+
+<p align="center">
+  Open-source, multi-game server management platform.<br>
+  Start with Hytale, expand to Minecraft and beyond.
+</p>
 
 ## Features
 
@@ -19,6 +26,32 @@ Open-source, multi-game server management platform. Start with Hytale, expand to
 - **Panel Self-Updater** - Check for updates and update the panel from GitHub releases with one click
 - **Dark Theme** - Modern, eye-friendly interface
 - **Docker Support** - One-command deployment with Docker Compose
+
+## Screenshots
+
+### Login
+
+![Login](docs/screenshots/login.png)
+
+### Dashboard
+
+![Dashboard](docs/screenshots/dashboard-servers.png)
+
+### Server Console
+
+![Console](docs/screenshots/server-view-console.png)
+
+### File Manager
+
+![Files](docs/screenshots/file-manager.png)
+
+### Server Settings
+
+![Settings](docs/screenshots/server-settings.png)
+
+### Server Creation
+
+![Create Server](docs/screenshots/server-creation.png)
 
 ## Tech Stack
 
