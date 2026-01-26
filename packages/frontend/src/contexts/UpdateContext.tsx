@@ -43,7 +43,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     if (user) {
       updateApi.getVersion()
         .then((data) => setCurrentVersion(data.version))
-        .catch((err) => console.error('Failed to load version', err));
+        .catch(() => {});
     }
   }, [user]);
 
@@ -52,7 +52,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     if (isAdmin) {
       updateApi.getSettings()
         .then(setSettings)
-        .catch((err) => console.error('Failed to load settings', err));
+        .catch(() => {});
     }
   }, [isAdmin]);
 

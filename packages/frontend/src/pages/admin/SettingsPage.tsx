@@ -64,8 +64,8 @@ export function SettingsPage() {
       setBackupsLoading(true);
       const data = await updateApi.listBackups();
       setBackups(data);
-    } catch (err) {
-      console.error('Failed to load backups', err);
+    } catch {
+      // Error handled by API client (5xx logged, 4xx shown in UI)
     } finally {
       setBackupsLoading(false);
     }

@@ -26,8 +26,8 @@ export function DashboardPage() {
     try {
       await serversApi.start(id);
       refetch();
-    } catch (err) {
-      console.error('Failed to start server:', err);
+    } catch {
+      // Error handled by API client (5xx logged, 4xx shown in UI)
     }
   };
 
@@ -35,8 +35,8 @@ export function DashboardPage() {
     try {
       await serversApi.stop(id);
       refetch();
-    } catch (err) {
-      console.error('Failed to stop server:', err);
+    } catch {
+      // Error handled by API client (5xx logged, 4xx shown in UI)
     }
   };
 

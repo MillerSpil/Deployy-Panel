@@ -74,8 +74,8 @@ export function ServerPage() {
       setActionLoading('start');
       await serversApi.start(id);
       fetchServer();
-    } catch (err) {
-      console.error('Failed to start server:', err);
+    } catch {
+      // Error handled by API client (5xx logged, 4xx shown in UI)
     } finally {
       setActionLoading(null);
     }
@@ -87,8 +87,8 @@ export function ServerPage() {
       setActionLoading('stop');
       await serversApi.stop(id);
       fetchServer();
-    } catch (err) {
-      console.error('Failed to stop server:', err);
+    } catch {
+      // Error handled by API client (5xx logged, 4xx shown in UI)
     } finally {
       setActionLoading(null);
     }
@@ -100,8 +100,8 @@ export function ServerPage() {
       setActionLoading('restart');
       await serversApi.restart(id);
       fetchServer();
-    } catch (err) {
-      console.error('Failed to restart server:', err);
+    } catch {
+      // Error handled by API client (5xx logged, 4xx shown in UI)
     } finally {
       setActionLoading(null);
     }
@@ -115,8 +115,8 @@ export function ServerPage() {
       setActionLoading('delete');
       await serversApi.delete(id);
       navigate('/');
-    } catch (err) {
-      console.error('Failed to delete server:', err);
+    } catch {
+      // Error handled by API client (5xx logged, 4xx shown in UI)
       setActionLoading(null);
     }
   };
