@@ -90,7 +90,9 @@ cd packages/backend
 cp .env.example .env
 # Edit .env and set JWT_SECRET (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
 
-pnpm prisma generate && pnpm prisma db push && pnpm prisma db seed
+pnpm prisma generate
+pnpm prisma db push
+pnpm prisma db seed
 
 # Development
 pnpm dev  # Terminal 1: Backend
