@@ -86,6 +86,10 @@ git clone https://github.com/MillerSpil/Deployy-Panel.git
 cd Deployy-Panel
 pnpm install
 
+# Build shared package (required before running)
+pnpm --filter @deployy/shared build
+
+# Setup backend
 cd packages/backend
 cp .env.example .env
 # Edit .env and set JWT_SECRET (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
@@ -94,9 +98,14 @@ pnpm prisma generate
 pnpm prisma db push
 pnpm prisma db seed
 
-# Development
-pnpm dev  # Terminal 1: Backend
-cd ../frontend && pnpm dev  # Terminal 2: Frontend
+# Development (run in separate terminals)
+# Terminal 1 - Backend:
+pnpm dev
+
+# Terminal 2 - Frontend:
+cd ../frontend
+pnpm dev
+
 # Open http://localhost:5173
 ```
 
