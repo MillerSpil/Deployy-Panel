@@ -23,6 +23,7 @@ const ANSI_COLORS: Record<string, string> = {
 
 function parseAnsi(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
+  // eslint-disable-next-line no-control-regex
   const regex = /\x1B\[([0-9;]*)m|\[([0-9;]*)m/g;
   let lastIndex = 0;
   let currentColor = 'text-green-400';

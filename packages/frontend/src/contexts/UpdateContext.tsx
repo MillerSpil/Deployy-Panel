@@ -127,12 +127,8 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateSettingsCallback = useCallback(async (newSettings: Partial<PanelSettings>) => {
-    try {
-      const updated = await updateApi.updateSettings(newSettings);
-      setSettings(updated);
-    } catch (err) {
-      throw err;
-    }
+    const updated = await updateApi.updateSettings(newSettings);
+    setSettings(updated);
   }, []);
 
   const value: UpdateContextType = {

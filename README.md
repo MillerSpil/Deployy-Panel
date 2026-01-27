@@ -5,88 +5,196 @@
 <h1 align="center">Deployy Panel</h1>
 
 <p align="center">
-  Open-source, multi-game server management platform.<br>
-  Start with Hytale, expand to Minecraft and beyond.
+  Open-source, extensible game server management panel.<br>
+  Currently supporting Hytale, with more games coming soon.
 </p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#screenshots">Screenshots</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#production-deployment">Production</a> •
+  <a href="#security">Security</a>
+</p>
+
+---
 
 ## Features
 
 - **Multi-Server Management** - Create and manage multiple game servers from a single dashboard
-- **Dynamic Server Settings** - Auto-generated config editor based on each game's JSON config
-- **Backup System** - Create, restore, and manage backups with configurable retention policies
-- **File Manager** - Browse, view, edit, upload, and download server files with Monaco Editor
-- **Scheduled Tasks** - Automate server restarts, backups, and custom commands with cron-based scheduling
-- **Roles & Permissions** - Granular access control with panel-wide roles and per-server permissions
 - **Real-Time Console** - Live server logs with ANSI color support and command input
-- **WebSocket Updates** - Instant status updates across all connected clients
-- **Secure Authentication** - JWT-based auth with HTTP-only cookies, bcrypt password hashing
-- **Multi-User Support** - Create multiple users with different roles and access levels
-- **Cross-Platform** - Works on Windows and Linux
+- **File Manager** - Browse, edit, upload, and download server files with Monaco Editor
+- **Backup System** - Create, restore, and manage backups with retention policies
+- **Scheduled Tasks** - Automate restarts, backups, and commands with cron scheduling
+- **Dynamic Settings** - Auto-generated config editor based on server's JSON config
+- **Roles & Permissions** - Panel-wide roles and per-server access levels
+- **Multi-User Support** - Multiple users with different roles
 - **Game Adapters** - Extensible architecture for adding new game support
-- **Panel Self-Updater** - Check for updates and update the panel from GitHub releases with one click
-- **Dark Theme** - Modern, eye-friendly interface
-- **Docker Support** - One-command deployment with Docker Compose
+- **Self-Updater** - One-click updates from GitHub releases
+- **Cross-Platform** - Windows and Linux support
+- **Docker Support** - One-command deployment
+
+### Supported Games
+
+| Game | Status |
+|------|--------|
+| Hytale | Supported (with auto-download) |
+| Minecraft | Planned |
+
+---
 
 ## Screenshots
 
-### Login
+<details>
+<summary>Click to view screenshots</summary>
 
+### Login
 ![Login](docs/screenshots/login.png)
 
 ### Dashboard
-
 ![Dashboard](docs/screenshots/dashboard-servers.png)
 
 ### Server Console
-
 ![Console](docs/screenshots/server-view-console.png)
 
 ### File Manager
-
 ![Files](docs/screenshots/file-manager.png)
 
 ### Server Settings
-
 ![Settings](docs/screenshots/server-settings.png)
 
 ### Server Creation
-
 ![Create Server](docs/screenshots/server-creation.png)
 
-## Tech Stack
+</details>
 
-- **Frontend:** React 18, TypeScript, Tailwind CSS, Vite, Socket.IO
-- **Backend:** Node.js, Express, Prisma (SQLite), Socket.IO, Zod
-- **Monorepo:** pnpm workspaces
+---
 
 ## Requirements
 
-- Node.js 20+
-- pnpm 8+
-- Java 25+ (for Hytale servers)
+- **Node.js** 20+
+- **pnpm** 8+
+- **Java** 25+ (for Hytale servers - [Adoptium](https://adoptium.net/) recommended)
+
+---
 
 ## Quick Start
-
-### 1. Clone and Install
 
 ```bash
 git clone https://github.com/MillerSpil/Deployy-Panel.git
 cd Deployy-Panel
 pnpm install
+
+cd packages/backend
+cp .env.example .env
+# Edit .env and set JWT_SECRET (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+
+pnpm prisma generate && pnpm prisma db push && pnpm prisma db seed
+
+# Development
+pnpm dev  # Terminal 1: Backend
+cd ../frontend && pnpm dev  # Terminal 2: Frontend
+# Open http://localhost:5173
 ```
 
-### 2. Initialize Database
+---
+
+## Installation
+
+<details>
+<summary><strong>Docker (Recommended for Production)</strong></summary>
 
 ```bash
+# Clone the repository
+git clone https://github.com/MillerSpil/Deployy-Panel.git
+cd Deployy-Panel
+
+# Create environment file
+cp packages/backend/.env.example .env
+
+# Generate a secure JWT secret and add to .env
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Edit .env and set JWT_SECRET to the generated value
+# Also set NODE_ENV=production
+
+# Build and start
+docker build -t deployy-panel .
+docker compose up -d
+```
+
+The panel will be available at `http://localhost:3000`
+
+**Configuration:**
+- Data persisted to `./data` directory
+- Database at `/data/deployy.db`
+
+**Commands:**
+```bash
+docker compose logs -f      # View logs
+docker compose down         # Stop
+docker compose up -d        # Start
+docker build -t deployy-panel . --no-cache && docker compose up -d  # Rebuild
+```
+
+</details>
+
+<details>
+<summary><strong>Manual Installation (Self-Hosted)</strong></summary>
+
+```bash
+# Clone and install dependencies
+git clone https://github.com/MillerSpil/Deployy-Panel.git
+cd Deployy-Panel
+pnpm install
+
+# Setup backend
 cd packages/backend
+cp .env.example .env
+# Edit .env - set a secure JWT_SECRET (minimum 32 characters)
+
+# Initialize database
+pnpm prisma generate
+pnpm prisma db push
+pnpm prisma db seed
+
+# Build frontend
+cd ../frontend
+pnpm build
+
+# Build backend
+cd ../backend
+pnpm build
+
+# Start production server
+NODE_ENV=production node dist/index.js
+```
+
+The panel serves at `http://localhost:3000`
+
+</details>
+
+<details>
+<summary><strong>Development Setup</strong></summary>
+
+```bash
+# Clone and install
+git clone https://github.com/MillerSpil/Deployy-Panel.git
+cd Deployy-Panel
+pnpm install
+
+# Setup backend
+cd packages/backend
+cp .env.example .env
+# Edit .env - set JWT_SECRET (can use any string for dev)
+
+# Initialize database
 pnpm prisma generate
 pnpm prisma db push
 pnpm prisma db seed
 ```
 
-This creates the database schema and seeds default roles (Admin, Moderator, User).
-
-### 3. Start Development Servers
+Run in two terminals:
 
 ```bash
 # Terminal 1 - Backend (port 3000)
@@ -98,508 +206,393 @@ cd packages/frontend
 pnpm dev
 ```
 
-### 4. Open Dashboard
+Open `http://localhost:5173`
 
-Navigate to [http://localhost:5173](http://localhost:5173)
+</details>
 
-## Docker Deployment
+---
 
-### Quick Start with Docker
+## Production Deployment
 
-```bash
-# Clone the repository
-git clone https://github.com/MillerSpil/Deployy-Panel.git
-cd Deployy-Panel
+For exposing Deployy Panel to the internet, you need HTTPS and a reverse proxy.
 
-# Build the Docker image
-docker build -t deployy-panel .
+<details>
+<summary><strong>Windows - Caddy (Recommended)</strong></summary>
 
-# Create .env file (copy from example and configure)
-cp packages/backend/.env.example .env
-# Edit .env with your JWT_SECRET and other settings
+Caddy automatically handles SSL certificates.
 
-# Start the container
-docker compose up -d
+1. **Download Caddy** from https://caddyserver.com/download (Windows amd64)
+
+2. **Create `Caddyfile`** in the same folder:
+```
+panel.yourdomain.com {
+    reverse_proxy localhost:3000
+}
 ```
 
-The panel will be available at [http://localhost:3000](http://localhost:3000)
-
-### Configuration
-
-The `docker-compose.yml` mounts one volume:
-- `./data` - Database and persistent data (mapped to `/data` in container)
-
-Environment variables can be set in your `.env` file:
-- `JWT_SECRET` - Required, generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-- `DATABASE_URL` - Set to `file:/data/deployy.db` in production
-- `NODE_ENV` - Set to `production`
-
-### Commands
-
-```bash
-# Build the image
-docker build -t deployy-panel .
-
-# Start the panel
-docker compose up -d
-
-# View logs
-docker compose logs -f
-
-# Stop the panel
-docker compose down
-
-# Rebuild after updates
-docker build -t deployy-panel . --no-cache
-docker compose up -d
+3. **Run Caddy:**
+```powershell
+.\caddy.exe run
 ```
 
-## Project Structure
+4. **Run as Windows Service (optional):**
+```powershell
+.\caddy.exe install
+.\caddy.exe start
+```
+
+</details>
+
+<details>
+<summary><strong>Windows - Firewall</strong></summary>
+
+```powershell
+# Allow Hytale game server (UDP)
+New-NetFirewallRule -DisplayName "Hytale Server" -Direction Inbound -Protocol UDP -LocalPort 5520 -Action Allow
+
+# Allow HTTP/HTTPS
+New-NetFirewallRule -DisplayName "HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
+New-NetFirewallRule -DisplayName "HTTPS" -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow
+```
+
+</details>
+
+<details>
+<summary><strong>Linux - Caddy (Recommended)</strong></summary>
+
+1. **Install Caddy** - https://caddyserver.com/docs/install
+
+2. **Create Caddyfile:**
+```
+panel.yourdomain.com {
+    reverse_proxy localhost:3000
+}
+```
+
+3. **Start Caddy:**
+```bash
+sudo systemctl enable --now caddy
+```
+
+</details>
+
+<details>
+<summary><strong>Linux - Nginx + Certbot</strong></summary>
+
+1. **Install:**
+```bash
+sudo apt install nginx certbot python3-certbot-nginx
+```
+
+2. **Create config** (`/etc/nginx/sites-available/deployy`):
+```nginx
+server {
+    listen 80;
+    server_name panel.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+3. **Enable and get SSL:**
+```bash
+sudo ln -s /etc/nginx/sites-available/deployy /etc/nginx/sites-enabled/
+sudo certbot --nginx -d panel.yourdomain.com
+sudo systemctl restart nginx
+```
+
+</details>
+
+<details>
+<summary><strong>Linux - Firewall (UFW)</strong></summary>
+
+```bash
+sudo ufw allow 5520/udp  # Hytale game server
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+```
+
+</details>
+
+**After Setup:** Update your `.env`:
+```env
+NODE_ENV=production
+FRONTEND_URL="https://panel.yourdomain.com"
+```
+
+---
+
+## Configuration
+
+<details>
+<summary><strong>Environment Variables</strong></summary>
+
+Create `.env` in `packages/backend/` (or project root for Docker):
+
+```env
+# Database
+DATABASE_URL="file:./dev.db"
+
+# Server
+PORT=3000
+NODE_ENV=development
+
+# Frontend URL (dev only - for CORS)
+FRONTEND_URL="http://localhost:5173"
+
+# Game server storage location
+SERVERS_BASE_PATH="C:\\DeployyServers"  # Windows
+# SERVERS_BASE_PATH="/opt/deployy/servers"  # Linux
+
+# Authentication (REQUIRED)
+JWT_SECRET="your-secret-key-minimum-32-characters-here"
+JWT_EXPIRATION="24h"
+```
+
+**Generate JWT_SECRET:**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+</details>
+
+<details>
+<summary><strong>Server Storage Paths</strong></summary>
+
+Game servers are installed to:
+- **Windows:** `C:\DeployyServers\{server-name}`
+- **Linux:** `/opt/deployy/servers/{server-name}`
+
+Change with `SERVERS_BASE_PATH` in your `.env` file.
+
+</details>
+
+---
+
+## First-Time Setup
+
+1. Open the panel in your browser
+2. Create an admin account (first user gets Admin role)
+3. Create a Hytale server with "Auto-download server files" enabled
+4. Authenticate with your Hytale account when prompted
+
+---
+
+## Hytale Server Management
+
+<details>
+<summary><strong>Creating a Server</strong></summary>
+
+1. Click "Create Server" on the dashboard
+2. Enter server name and port (default: 5520)
+3. Enable "Auto-download server files"
+4. Authenticate with your Hytale account
+5. Server files download automatically
+
+</details>
+
+<details>
+<summary><strong>Updating a Server</strong></summary>
+
+1. Navigate to server's "Updates" tab
+2. Stop the server if running
+3. Click "Update Server"
+4. Authenticate when prompted
+
+</details>
+
+<details>
+<summary><strong>Server Requirements</strong></summary>
+
+- Java 25+ (Hytale uses modern Java features)
+- 6-8GB RAM recommended
+- UDP port 5520 (Hytale uses QUIC protocol)
+
+</details>
+
+---
+
+## Permissions
+
+<details>
+<summary><strong>Panel Roles</strong></summary>
+
+| Role | Access |
+|------|--------|
+| **Admin** | Full access to everything |
+| **Moderator** | View all servers, view users |
+| **User** | Only access to own servers |
+
+</details>
+
+<details>
+<summary><strong>Server Access Levels</strong></summary>
+
+| Level | Capabilities |
+|-------|-------------|
+| **Owner** | Full control, delete, manage access |
+| **Admin** | Settings, files, backups |
+| **Operator** | Start, stop, restart, commands |
+| **Viewer** | View console only |
+
+</details>
+
+---
+
+## Security
+
+- JWT tokens in HTTP-only cookies
+- Passwords hashed with bcrypt (14 rounds)
+- 24-hour token expiration
+- Rate limiting on auth endpoints
+
+<details>
+<summary><strong>Rate Limits</strong></summary>
+
+- Auth endpoints: 5 requests per 15 minutes
+- File operations: 30 requests per minute
+- Backup operations: 10 requests per minute
+
+</details>
+
+<details>
+<summary><strong>Security Checklist (Public Deployments)</strong></summary>
+
+- [ ] Strong JWT_SECRET (64+ character random string)
+- [ ] HTTPS enabled via reverse proxy
+- [ ] Firewall configured (only expose necessary ports)
+- [ ] Regular backups enabled
+- [ ] Keep panel updated
+
+</details>
+
+---
+
+## Development
+
+<details>
+<summary><strong>Scripts</strong></summary>
+
+```bash
+pnpm dev          # Start all in dev mode
+pnpm build        # Build all packages
+pnpm lint         # Lint all packages
+```
+
+</details>
+
+<details>
+<summary><strong>Tech Stack</strong></summary>
+
+- **Frontend:** React 18, TypeScript, Tailwind CSS, Vite, Socket.IO
+- **Backend:** Node.js, Express, Prisma (SQLite), Socket.IO, Zod
+- **Monorepo:** pnpm workspaces
+
+</details>
+
+<details>
+<summary><strong>Project Structure</strong></summary>
 
 ```
 Deployy-Panel/
 ├── packages/
 │   ├── backend/          # Express API server
 │   │   ├── src/
-│   │   │   ├── adapters/     # Game-specific adapters
-│   │   │   ├── routes/       # API routes
+│   │   │   ├── adapters/     # Game adapters
+│   │   │   ├── routes/       # API endpoints
 │   │   │   ├── services/     # Business logic
-│   │   │   ├── websocket/    # Socket.IO handlers
-│   │   │   └── utils/        # Utilities
+│   │   │   └── websocket/    # Socket.IO handlers
 │   │   └── prisma/           # Database schema
 │   │
 │   ├── frontend/         # React web app
 │   │   └── src/
-│   │       ├── components/   # UI components
-│   │       ├── pages/        # Route pages
-│   │       ├── hooks/        # Custom hooks
-│   │       └── api/          # API client
+│   │       ├── components/
+│   │       ├── pages/
+│   │       └── hooks/
 │   │
 │   └── shared/           # Shared TypeScript types
-│       └── src/
-│           ├── types.ts
-│           └── schemas.ts
 │
-├── package.json          # Root workspace config
-└── pnpm-workspace.yaml
+├── docs/                 # Screenshots and assets
+├── docker-compose.yml
+├── Dockerfile
+└── package.json
 ```
 
-## API Endpoints
+</details>
 
-### Authentication
+<details>
+<summary><strong>Adding Game Support</strong></summary>
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/auth/setup-status` | Check if initial setup is needed |
-| POST | `/api/auth/register` | Create admin account (first-time only) |
-| POST | `/api/auth/login` | Login and receive auth cookie |
-| POST | `/api/auth/logout` | Logout and clear auth cookie |
-| GET | `/api/auth/me` | Get current authenticated user |
+The panel uses an adapter pattern. To add a new game:
 
-### Servers (Protected)
+1. Create adapter in `packages/backend/src/adapters/`
+2. Extend `BaseAdapter` class
+3. Implement: `install()`, `start()`, `stop()`, `restart()`
+4. Register in `AdapterFactory`
 
-Server endpoints require authentication and appropriate permissions.
+</details>
 
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/api/servers` | List accessible servers | Any authenticated |
-| POST | `/api/servers` | Create new server | `servers.create` |
-| GET | `/api/servers/:id` | Get server details | Viewer+ |
-| DELETE | `/api/servers/:id` | Delete server | Owner |
-| POST | `/api/servers/:id/start` | Start server | Operator+ |
-| POST | `/api/servers/:id/stop` | Stop server | Operator+ |
-| POST | `/api/servers/:id/restart` | Restart server | Operator+ |
-| GET | `/api/servers/:id/config` | Get server config | Admin+ |
-| PATCH | `/api/servers/:id/config` | Update server config | Admin+ |
-| POST | `/api/servers/:id/download` | Start Hytale server file download | Admin+ |
+---
 
-### Backups (Protected)
+## Troubleshooting
 
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/api/servers/:id/backups` | List backups | Admin+ |
-| POST | `/api/servers/:id/backups` | Create backup | Admin+ |
-| PATCH | `/api/servers/:id/backups/retention` | Update retention setting | Admin+ |
-| GET | `/api/servers/:id/backups/:backupId/download` | Download backup | Admin+ |
-| POST | `/api/servers/:id/backups/:backupId/restore` | Restore backup | Admin+ |
-| DELETE | `/api/servers/:id/backups/:backupId` | Delete backup | Admin+ |
+<details>
+<summary><strong>"Invalid JWT secret"</strong></summary>
 
-### Files (Protected)
-
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/api/servers/:id/files` | List files in directory | Admin+ |
-| GET | `/api/servers/:id/files/read` | Read file content | Admin+ |
-| PUT | `/api/servers/:id/files/write` | Write file content | Admin+ |
-| POST | `/api/servers/:id/files/create` | Create file or folder | Admin+ |
-| DELETE | `/api/servers/:id/files/delete` | Delete file or folder | Admin+ |
-| PATCH | `/api/servers/:id/files/rename` | Rename file or folder | Admin+ |
-| GET | `/api/servers/:id/files/download` | Download file | Admin+ |
-| POST | `/api/servers/:id/files/upload` | Upload file | Admin+ |
-
-### Scheduled Tasks (Protected)
-
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/api/servers/:id/schedules` | List scheduled tasks | Admin+ |
-| GET | `/api/servers/:id/schedules/:taskId` | Get task details | Admin+ |
-| POST | `/api/servers/:id/schedules` | Create scheduled task | Admin+ |
-| PATCH | `/api/servers/:id/schedules/:taskId` | Update scheduled task | Admin+ |
-| POST | `/api/servers/:id/schedules/:taskId/toggle` | Toggle task enabled | Admin+ |
-| DELETE | `/api/servers/:id/schedules/:taskId` | Delete scheduled task | Admin+ |
-
-### Server Access (Protected)
-
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/api/servers/:id/access` | List access entries | Owner or Admin |
-| POST | `/api/servers/:id/access` | Grant access | Owner or Admin |
-| PATCH | `/api/servers/:id/access/:accessId` | Update access level | Owner or Admin |
-| DELETE | `/api/servers/:id/access/:accessId` | Revoke access | Owner or Admin |
-| POST | `/api/servers/:id/access/transfer-ownership` | Transfer ownership | Owner |
-
-### Users (Protected)
-
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/api/users` | List all users | `users.view` |
-| GET | `/api/users/:id` | Get user details | `users.view` |
-| POST | `/api/users` | Create user | `users.create` |
-| PATCH | `/api/users/:id` | Update user | `users.edit` |
-| DELETE | `/api/users/:id` | Delete user | `users.delete` |
-
-### Roles (Protected)
-
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/api/roles` | List all roles | `roles.view` |
-| GET | `/api/roles/:id` | Get role details | `roles.view` |
-| POST | `/api/roles` | Create role | `roles.create` |
-| PATCH | `/api/roles/:id` | Update role | `roles.edit` |
-| DELETE | `/api/roles/:id` | Delete role | `roles.delete` |
-
-### Panel Updates (Protected)
-
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/api/update/status` | Check for updates | `panel.admin` |
-| GET | `/api/update/version` | Get current version | Any authenticated |
-| GET | `/api/update/settings` | Get panel settings | `panel.admin` |
-| PATCH | `/api/update/settings` | Update settings | `panel.admin` |
-| POST | `/api/update/apply` | Start update process | `panel.admin` |
-| GET | `/api/update/backups` | List update backups | `panel.admin` |
-| DELETE | `/api/update/backups/:backupId` | Delete backup | `panel.admin` |
-| POST | `/api/update/rollback/:backupId` | Rollback to backup | `panel.admin` |
-
-### WebSocket Events
-
-```typescript
-// Subscribe to server updates
-socket.emit('subscribe:server', { serverId: string });
-
-// Server events
-socket.on('server:status', ({ serverId, status }) => {});
-socket.on('server:log', ({ serverId, line, timestamp }) => {});
-
-// Hytale download events
-socket.on('hytale:download:progress', ({ serverId, status, message, authUrl }) => {});
-socket.on('hytale:download:log', ({ serverId, line, timestamp }) => {});
-
-// Panel update events
-socket.on('update:progress', ({ status, message, progress, envChanges }) => {});
-```
-
-## Configuration
-
-### Server Paths
-
-By default, game servers are installed to:
-- **Windows:** `C:\DeployyServers\{server-name}`
-- **Linux:** `/opt/deployy/servers/{server-name}`
-
-### Environment Variables
-
-Create a `.env` file in `packages/backend/` (see `.env.example`):
-
-```env
-DATABASE_URL="file:./dev.db"
-PORT=3000
-NODE_ENV=development
-FRONTEND_URL="http://localhost:5173"
-SERVERS_BASE_PATH="C:\\DeployyServers"
-JWT_SECRET="your-secret-key-minimum-32-characters"
-JWT_EXPIRATION="24h"
-```
-
-**Important:** Generate a secure JWT secret:
+Your JWT_SECRET is too short or not set. Generate one:
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-## Authentication
+</details>
 
-Deployy Panel uses JWT-based authentication with HTTP-only cookies for security.
+<details>
+<summary><strong>Server won't start</strong></summary>
 
-### Initial Setup
+- Check Java 25+ is installed: `java -version`
+- Ensure the port isn't in use
+- Check server logs in the console tab
 
-On first run, you'll be redirected to create an admin account. The first registered user automatically gets the Admin role with full access.
+</details>
 
-### Security Features
+<details>
+<summary><strong>Can't connect to game server</strong></summary>
 
-- Passwords hashed with bcrypt (14 rounds)
-- JWT tokens stored in HTTP-only cookies (not accessible via JavaScript)
-- 24-hour token expiration
-- Rate limiting on auth endpoints (5 requests per 15 minutes)
-- All API routes and WebSocket connections require authentication
+- Hytale uses UDP port 5520, not TCP
+- Check your firewall allows UDP traffic
+- Verify the port in server settings
 
-## Roles & Permissions
+</details>
 
-Deployy Panel has a two-tier permission system:
-
-### Panel Permissions (Role-based)
-
-Roles grant panel-wide permissions. Default roles:
-
-| Role | Permissions |
-|------|-------------|
-| **Admin** | Full access (`panel.admin`) |
-| **Moderator** | View all servers, view users |
-| **User** | No special permissions (only own servers) |
-
-Available panel permissions:
-- `panel.admin` - Full access, bypasses all permission checks
-- `servers.create` - Create new servers
-- `servers.viewAll` - View all servers (not just own)
-- `users.view`, `users.create`, `users.edit`, `users.delete` - User management
-- `roles.view`, `roles.create`, `roles.edit`, `roles.delete` - Role management
-
-### Server Permissions (Per-server)
-
-Each user can have a different permission level per server:
-
-| Level | Capabilities |
-|-------|--------------|
-| **Owner** | Full control, can delete, manage access, transfer ownership |
-| **Admin** | Manage settings, files, backups |
-| **Operator** | Start, stop, restart, send commands |
-| **Viewer** | View console and logs only |
-
-When you create a server, you automatically become its owner.
-
-### Admin UI
-
-Users with appropriate permissions can access the admin section at `/admin`:
-- **Users page** - Manage user accounts and role assignments
-- **Roles page** - View and manage custom roles (system roles are protected)
-
-## Dynamic Server Settings
-
-The Settings tab on each server page provides a fully dynamic configuration editor:
-
-- **Auto-generated UI** - Reads the server's `config.json` and generates form fields automatically
-- **Smart type detection** - Booleans show toggles, numbers show number inputs, strings show text inputs
-- **Nested objects** - Displayed as collapsible sections for complex configurations
-- **Arrays** - Add/remove items dynamically with appropriate field types
-- **No hardcoding** - New config options appear automatically when games add them
-- **Restart warning** - Shows alert when server is running and changes require restart
-- **Permission required** - Only users with Admin or Owner server access can edit settings
-
-This means when Hytale or other games update their config format, the UI adapts automatically without code changes.
-
-## Backup System
-
-The Backups tab on each server page provides comprehensive backup management:
-
-- **Create Backups** - Zip the entire server directory (excluding the backups folder itself)
-- **Restore Backups** - Extract a backup to restore server state (server must be stopped)
-- **Download Backups** - Download backup files as zip archives
-- **Delete Backups** - Remove old backups manually
-- **Retention Policy** - Configure how many backups to keep (e.g., keep last 5, auto-delete older)
-- **Backup Location** - Backups stored in `server_path/backups/`
-- **Permission Required** - Only users with Admin or Owner server access can manage backups
-
-## File Manager
-
-The Files tab on each server page provides a full-featured file manager:
-
-- **Browse Files** - Navigate through server directories with breadcrumb navigation
-- **Edit Files** - Built-in Monaco Editor (VSCode's editor) with syntax highlighting for JSON, YAML, properties, logs, and more
-- **Create Files/Folders** - Create new files or directories
-- **Rename** - Rename files and folders
-- **Delete** - Delete files and folders with confirmation dialog
-- **Upload** - Upload files via button or drag & drop
-- **Download** - Download any file directly
-- **Binary Protection** - Binary files (.jar, .exe, .zip, etc.) are blocked from editing but can be downloaded
-- **Path Security** - All operations are validated to prevent path traversal attacks
-- **Permission Required** - Only users with Admin or Owner server access can manage files
-
-## Scheduled Tasks
-
-The Schedules tab on each server page provides automated task scheduling:
-
-- **Auto-Restart** - Schedule automatic server restarts at intervals (hourly, daily, weekly)
-- **Scheduled Backups** - Automate backup creation on a regular schedule
-- **Custom Commands** - Execute server commands automatically (e.g., warning messages before restart)
-- **Enable/Disable** - Toggle tasks on and off without deleting them
-- **Multiple Schedules** - Create multiple tasks with different schedules per server
-- **Last Run Tracking** - See when each task last executed and when it will run next
-- **Permission Required** - Only users with Admin or Owner server access can manage schedules
-
-### Available Schedules
-
-| Schedule | Description |
-|----------|-------------|
-| Every hour | Runs at the top of each hour |
-| Every 3 hours | Runs at 0:00, 3:00, 6:00, etc. |
-| Every 6 hours | Runs at 0:00, 6:00, 12:00, 18:00 |
-| Every 12 hours | Runs at 0:00 and 12:00 |
-| Daily at midnight | Runs at 00:00 every day |
-| Daily at 3:00 AM | Runs at 03:00 every day |
-| Daily at 6:00 AM | Runs at 06:00 every day |
-| Daily at noon | Runs at 12:00 every day |
-| Daily at 6:00 PM | Runs at 18:00 every day |
-| Weekly on Sunday | Runs at midnight every Sunday |
-| Weekly on Monday | Runs at midnight every Monday |
-
-## Hytale Server Auto-Download
-
-When creating a new Hytale server, you can enable automatic download of server files:
-
-1. **Check "Auto-download server files"** when creating a new Hytale server
-2. After clicking Create, a download modal appears showing real-time progress
-3. The panel downloads the official Hytale downloader tool
-4. **OAuth Authentication** - Click the "Authenticate" button when prompted to sign in with your Hytale account
-5. After authentication, server files are automatically downloaded and extracted
-6. Temporary files are cleaned up automatically
-
-The download includes:
-- `HytaleServer.jar` - The server executable
-- `Assets.zip` - Game assets required for the server
-- `config.json` - Default server configuration
-
-## Hytale Server Updates
-
-The Updates tab on Hytale server pages allows you to update your server files:
-
-- **Update Server** - Re-download and replace server files (server must be stopped)
-- **OAuth Authentication** - Same authentication flow as initial download
-- **Real-Time Progress** - Console output shows the update progress
-
-### How to Update
-
-1. Navigate to your Hytale server's **Updates** tab
-2. **Stop the server** if it's running
-3. Click **Update Server**
-4. Authenticate when prompted (same as initial download)
-5. Server files are automatically replaced with the new version
-
-**Note:** Updates require the server to be stopped to prevent file conflicts.
-
-## Panel Self-Updater
-
-The panel includes a built-in self-update system to keep your installation up to date.
-
-### Features
-
-- **Automatic Update Check** - Checks for updates on panel startup (can be disabled)
-- **Manual Update Check** - "Check for Updates" button in Admin Settings
-- **Release Notes** - View changelog before updating
-- **Automatic Backup** - Creates a full backup before each update
-- **Smart .env Merging** - Preserves your configuration, adds new options from updates
-- **Rollback Support** - Restore to any previous backup if needed
-- **Backup Management** - Delete old backups to free up disk space
-
-### How to Update
-
-1. Navigate to **Admin > Settings**
-2. Click **Check for Updates** (or wait for auto-check)
-3. Review the release notes
-4. Click **Update to vX.X.X**
-5. Wait for the update to complete
-6. **Restart the panel** to apply changes
-
-### Update Process
-
-1. **Backup** - Full backup of panel files (excludes node_modules, databases)
-2. **Download** - Fetches latest release from GitHub
-3. **Extract** - Extracts files to temporary location
-4. **Merge Config** - Merges .env with new .env.example (preserves your values)
-5. **Replace Files** - Updates panel files (preserves databases, backups, .env)
-6. **Install Dependencies** - Runs `pnpm install` for new dependencies
-
-### Rollback
-
-If an update causes issues:
-
-1. Navigate to **Admin > Settings**
-2. Find the backup in the **Update Backups** section
-3. Click **Rollback** on the desired backup
-4. Restart the panel
-
-### Configuration
-
-- **Auto-check updates** - Toggle in Admin Settings (enabled by default)
-
-### Preserved Files (Never Overwritten)
-
-The following are preserved during updates:
-- `.env` file (merged instead)
-- `*.db` database files
-- `backups/` directory
-- `update-backups/` directory
-- `node_modules/` (reinstalled)
-- `.git/` directory
-
-## Supported Games
-
-| Game | Status | Notes |
-|------|--------|-------|
-| Hytale | Active | Full support with auto-download |
-| Minecraft | Planned | Coming soon |
-
-## Development
-
-### Available Scripts
+<details>
+<summary><strong>Database errors</strong></summary>
 
 ```bash
-# Root level
-pnpm dev          # Start all packages in dev mode
-pnpm build        # Build all packages
-pnpm lint         # Lint all packages
-pnpm typecheck    # Type check all packages
-
-# Package level
-pnpm dev          # Start dev server
-pnpm build        # Production build
-pnpm lint         # Run ESLint
+cd packages/backend
+pnpm prisma db push
+pnpm prisma db seed
 ```
 
-### Adding a New Game Adapter
+</details>
 
-1. Create adapter in `packages/backend/src/adapters/`
-2. Extend `BaseAdapter` class
-3. Implement required methods: `install()`, `start()`, `stop()`, `restart()`
-4. Register in `AdapterFactory`
-
-## Roadmap
-
-- [x] User authentication
-- [x] Multi-user support with roles & permissions
-- [x] Dynamic server settings editor
-- [x] Backup system
-- [x] File Manager - Browse, edit, upload, and download server files with Monaco Editor
-- [x] Scheduled Tasks - Auto-restart, scheduled backups, and custom commands with cron scheduling
-- [x] Hytale Server Auto-Download - Automatically download server files during setup with OAuth
-- [x] Hytale Server Updater - Check for updates and update server files with one click
-- [x] Panel Self-Updater - Check for new versions and one-click update from GitHub releases
-- [ ] Mod manager
-- [ ] Minecraft Support - Adapter for Minecraft servers (Paper, Spigot, Fabric)
-- [x] Docker Support - One-command deployment with Docker Compose
+---
 
 ## License
 
-AGPL-3.0
+AGPL-3.0 - See [LICENSE](LICENSE)
+
+---
 
 ## Links
 
-- **Issues:** [GitHub Issues](https://github.com/MillerSpil/Deployy-Panel/issues)
+- [GitHub Issues](https://github.com/MillerSpil/Deployy-Panel/issues)
+- [Hytale](https://hytale.com)
