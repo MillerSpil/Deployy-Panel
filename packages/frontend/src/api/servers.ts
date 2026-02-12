@@ -12,7 +12,17 @@ export const serversApi = {
 
   get: (id: string) => apiRequest<ServerWithPermissions>(`/servers/${id}`),
 
-  create: (data: { name: string; gameType: string; path: string; port: number; maxPlayers: number; autoDownload?: boolean }) =>
+  create: (data: {
+    name: string;
+    gameType: string;
+    path: string;
+    port: number;
+    maxPlayers: number;
+    autoDownload?: boolean;
+    flavor?: string;
+    version?: string;
+    ram?: number;
+  }) =>
     apiRequest<Server>('/servers', {
       method: 'POST',
       body: JSON.stringify(data),

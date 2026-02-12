@@ -3,6 +3,15 @@ import type { Role, PanelPermission } from '@deployy/shared';
 import { AppError } from '../middleware/errorHandler.js';
 import { logger } from '../utils/logger.js';
 
+function safeParsePermissions(raw: string, context?: string): PanelPermission[] {
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.error(`Failed to parse permissions JSON${context ? ` (${context})` : ''}`, { raw, error: err });
+    return [];
+  }
+}
+
 export class RoleService {
   constructor(private prisma: PrismaClient) {}
 
@@ -124,7 +133,7 @@ export class RoleService {
       id: role.id,
       name: role.name,
       description: role.description,
-      permissions: JSON.parse(role.permissions) as PanelPermission[],
+      permissions: safeParsePermissions(role.permissions, `transformRole:${role.name}`),
       isSystem: role.isSystem,
       createdAt: role.createdAt,
       updatedAt: role.updatedAt,

@@ -9,6 +9,21 @@ interface ServerCardProps {
   onView: (id: string) => void;
 }
 
+function getGameTypeDisplay(server: Server): string {
+  if (server.gameType === 'minecraft') {
+    const flavor = (server.config as Record<string, unknown>)?.flavor as string;
+    if (flavor) {
+      const flavorName = flavor.charAt(0).toUpperCase() + flavor.slice(1);
+      return `Minecraft - ${flavorName}`;
+    }
+    return 'Minecraft';
+  }
+  if (server.gameType === 'hytale') {
+    return 'Hytale';
+  }
+  return server.gameType;
+}
+
 export function ServerCard({ server, onStart, onStop, onView }: ServerCardProps) {
   const isRunning = server.status === 'running';
 
@@ -17,7 +32,7 @@ export function ServerCard({ server, onStart, onStop, onView }: ServerCardProps)
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-lg font-semibold text-slate-100">{server.name}</h3>
-          <p className="text-sm text-slate-400">{server.gameType}</p>
+          <p className="text-sm text-slate-400">{getGameTypeDisplay(server)}</p>
         </div>
         <StatusBadge status={server.status} />
       </div>

@@ -14,14 +14,25 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+  } catch (networkErr) {
+    // Network error - backend is unreachable or crashed
+    console.error(`Network error for ${endpoint}:`, networkErr);
+    throw new ApiError(
+      0,
+      'Unable to connect to the server. Please check that the backend is running.',
+    );
+  }
 
   if (!response.ok) {
     // Suppress error throwing for expected 401s on auth check endpoints
@@ -31,7 +42,8 @@ export async function apiRequest<T>(endpoint: string, options?: RequestInit): Pr
     }
 
     const error = await response.json().catch(() => ({}));
-    const apiError = new ApiError(response.status, error.error || 'Request failed', error.details);
+    const message = error.error || `Request failed (${response.status})`;
+    const apiError = new ApiError(response.status, message, error.details);
 
     // Only log 5xx server errors to console - 4xx are user errors handled by UI
     if (response.status >= 500) {

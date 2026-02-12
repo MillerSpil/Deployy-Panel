@@ -284,7 +284,7 @@ export function ServerPage() {
               Schedules
             </TabButton>
           )}
-          {canManageSettings && server.gameType === 'hytale' && (
+          {canManageSettings && (
             <TabButton
               active={activeTab === 'updates'}
               onClick={() => setActiveTab('updates')}
@@ -338,10 +338,11 @@ export function ServerPage() {
         <ServerScheduleManager serverId={server.id} />
       )}
 
-      {activeTab === 'updates' && canManageSettings && server.gameType === 'hytale' && (
+      {activeTab === 'updates' && canManageSettings && (
         <ServerUpdateManager
           serverId={server.id}
           serverStatus={server.status}
+          gameType={server.gameType}
         />
       )}
 

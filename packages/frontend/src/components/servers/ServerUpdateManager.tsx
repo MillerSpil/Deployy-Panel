@@ -2,26 +2,32 @@ import { useState, useEffect, useRef } from 'react';
 import { serversApi } from '@/api/servers';
 import { useSocket } from '@/hooks/useSocket';
 import { Button } from '@/components/common/Button';
-import type { HytaleDownloadStatus, ServerStatus } from '@deployy/shared';
+import type { HytaleDownloadStatus, MinecraftDownloadStatus, ServerStatus, GameType } from '@deployy/shared';
 
 interface ServerUpdateManagerProps {
   serverId: string;
   serverStatus: ServerStatus;
+  gameType: GameType;
 }
+
+type DownloadStatus = HytaleDownloadStatus | MinecraftDownloadStatus;
 
 export function ServerUpdateManager({
   serverId,
   serverStatus,
+  gameType,
 }: ServerUpdateManagerProps) {
   const socket = useSocket();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [status, setStatus] = useState<HytaleDownloadStatus | null>(null);
+  const [status, setStatus] = useState<DownloadStatus | null>(null);
   const [message, setMessage] = useState('');
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [logs, setLogs] = useState<Array<{ line: string; timestamp: string }>>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const isServerRunning = serverStatus === 'running' || serverStatus === 'starting';
+  const isMinecraft = gameType === 'minecraft';
+  const isHytale = gameType === 'hytale';
 
   // Scroll to bottom when logs update
   useEffect(() => {
@@ -32,7 +38,8 @@ export function ServerUpdateManager({
   useEffect(() => {
     if (!socket) return;
 
-    const handleProgress = (data: {
+    // Hytale events
+    const handleHytaleProgress = (data: {
       serverId: string;
       status: HytaleDownloadStatus;
       message: string;
@@ -55,17 +62,42 @@ export function ServerUpdateManager({
       }
     };
 
-    const handleLog = (data: { serverId: string; line: string; timestamp: string }) => {
+    const handleHytaleLog = (data: { serverId: string; line: string; timestamp: string }) => {
       if (data.serverId !== serverId) return;
       setLogs((prev) => [...prev.slice(-99), { line: data.line, timestamp: data.timestamp }]);
     };
 
-    socket.on('hytale:download:progress', handleProgress);
-    socket.on('hytale:download:log', handleLog);
+    // Minecraft events
+    const handleMinecraftProgress = (data: {
+      serverId: string;
+      status: MinecraftDownloadStatus;
+      message: string;
+    }) => {
+      if (data.serverId !== serverId) return;
+
+      setStatus(data.status);
+      setMessage(data.message);
+
+      if (data.status === 'completed' || data.status === 'error') {
+        setIsUpdating(false);
+      }
+    };
+
+    const handleMinecraftLog = (data: { serverId: string; line: string; timestamp: string }) => {
+      if (data.serverId !== serverId) return;
+      setLogs((prev) => [...prev.slice(-99), { line: data.line, timestamp: data.timestamp }]);
+    };
+
+    socket.on('hytale:download:progress', handleHytaleProgress);
+    socket.on('hytale:download:log', handleHytaleLog);
+    socket.on('minecraft:download:progress', handleMinecraftProgress);
+    socket.on('minecraft:download:log', handleMinecraftLog);
 
     return () => {
-      socket.off('hytale:download:progress', handleProgress);
-      socket.off('hytale:download:log', handleLog);
+      socket.off('hytale:download:progress', handleHytaleProgress);
+      socket.off('hytale:download:log', handleHytaleLog);
+      socket.off('minecraft:download:progress', handleMinecraftProgress);
+      socket.off('minecraft:download:log', handleMinecraftLog);
     };
   }, [socket, serverId]);
 
@@ -96,13 +128,18 @@ export function ServerUpdateManager({
     }
   };
 
+  const getDescription = () => {
+    if (isMinecraft) {
+      return 'Download the latest server JAR from Mojang/PaperMC. This will replace your current server.jar file.';
+    }
+    return 'Download the latest server files from Hytale. This will replace your current server files.';
+  };
+
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
       <h2 className="text-xl font-semibold text-slate-100 mb-4">Server Updates</h2>
 
-      <p className="text-slate-400 mb-6">
-        Download the latest server files from Hytale. This will replace your current server files.
-      </p>
+      <p className="text-slate-400 mb-6">{getDescription()}</p>
 
       {/* Status Message */}
       {message && (
@@ -119,8 +156,8 @@ export function ServerUpdateManager({
         </div>
       )}
 
-      {/* Auth Button */}
-      {authUrl && (
+      {/* Auth Button (Hytale only) */}
+      {authUrl && isHytale && (
         <div className="mb-4 p-4 bg-yellow-900/30 border border-yellow-700 rounded-lg">
           <p className="text-yellow-300 mb-3">
             Please authenticate with your Hytale account to download server files.

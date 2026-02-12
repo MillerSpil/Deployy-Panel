@@ -70,6 +70,8 @@ export class ServerService {
     port: number;
     maxPlayers: number;
     version?: string;
+    flavor?: string;
+    ram?: number;
   }): Promise<Server> {
     const serverPath = data.path;
 
@@ -86,6 +88,16 @@ export class ServerService {
       throw new AppError(409, `Port ${data.port} is already in use by server "${existingServer.name}"`);
     }
 
+    // Build config JSON with game-specific settings
+    const serverConfig: Record<string, unknown> = {};
+    if (data.ram) {
+      serverConfig.ram = data.ram;
+    }
+    if (data.gameType === 'minecraft') {
+      serverConfig.flavor = data.flavor || 'paper';
+      serverConfig.version = data.version || 'latest';
+    }
+
     const server = await this.prisma.server.create({
       data: {
         name: data.name,
@@ -94,7 +106,7 @@ export class ServerService {
         maxPlayers: data.maxPlayers,
         version: data.version,
         path: serverPath,
-        config: JSON.stringify({}),
+        config: JSON.stringify(serverConfig),
       },
     });
 
@@ -109,6 +121,8 @@ export class ServerService {
         maxPlayers: data.maxPlayers,
         version: data.version,
         installPath: serverPath,
+        ram: data.ram as any,
+        flavor: data.flavor as any,
       };
 
       const result = await adapter.install(installConfig);
@@ -116,6 +130,14 @@ export class ServerService {
       if (!result.success) {
         await this.prisma.server.delete({ where: { id: server.id } });
         throw new Error(result.error || 'Installation failed');
+      }
+
+      // Update version if the adapter resolved 'latest' to a specific version
+      if (result.version && result.version !== data.version) {
+        await this.prisma.server.update({
+          where: { id: server.id },
+          data: { version: result.version },
+        });
       }
 
       logger.info(`Server created: ${server.id} at ${serverPath}`);
@@ -192,6 +214,57 @@ export class ServerService {
       return true;
     }
     return false;
+  }
+
+  async startMinecraftUpdate(serverId: string, targetVersion?: string): Promise<void> {
+    const server = await this.getServer(serverId);
+    if (!server) {
+      throw new AppError(404, 'Server not found');
+    }
+
+    if (server.gameType !== 'minecraft') {
+      throw new AppError(400, 'Updates via this method are only available for Minecraft servers');
+    }
+
+    // Check if server is running or already updating
+    const existingAdapter = this.adapters.get(serverId);
+    if (existingAdapter?.isRunning()) {
+      throw new AppError(409, 'Server must be stopped before updating');
+    }
+    if (existingAdapter?.isUpdating) {
+      throw new AppError(409, 'An update is already in progress for this server');
+    }
+
+    // Use the existing adapter if available (it holds the lock state),
+    // otherwise create a new one
+    const updateAdapter = existingAdapter || AdapterFactory.create(server);
+
+    // Wire up progress events with proper typing
+    updateAdapter.on('update:progress', (progress: { status: string; message: string }) => {
+      if (this.io) {
+        this.io.emit('minecraft:download:progress', {
+          serverId,
+          status: progress.status as 'checking_version' | 'downloading' | 'completed' | 'error',
+          message: progress.message,
+        });
+      }
+    });
+
+    // Start update in background
+    updateAdapter.update(targetVersion).then(async (result) => {
+      if (result.success && result.version) {
+        // Update version in database
+        await this.prisma.server.update({
+          where: { id: serverId },
+          data: { version: result.version },
+        });
+        logger.info(`Minecraft server ${serverId} updated to ${result.version}`);
+      }
+    }).catch((error) => {
+      logger.error('Minecraft update failed', { serverId, error });
+    });
+
+    logger.info(`Started Minecraft update for server ${serverId}`);
   }
 
   async deleteServer(id: string): Promise<void> {
@@ -272,34 +345,34 @@ export class ServerService {
   }
 
   async getServerConfig(id: string): Promise<GameConfig> {
-    const server = await this.prisma.server.findUnique({ where: { id } });
+    const server = await this.getServer(id);
     if (!server) {
       throw new AppError(404, 'Server not found');
     }
 
-    const configPath = path.join(server.path, 'config.json');
-
     try {
-      const content = await fs.readFile(configPath, 'utf-8');
-      return JSON.parse(content);
+      // Use adapter to get config (handles different formats per game type)
+      const adapter = AdapterFactory.create(server);
+      return await adapter.getConfig();
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         throw new AppError(404, 'Config file not found');
       }
+      logger.error('Failed to read server config', { error, serverId: id });
       throw new AppError(500, 'Failed to read config file');
     }
   }
 
   async updateServerConfig(id: string, config: GameConfig): Promise<GameConfig> {
-    const server = await this.prisma.server.findUnique({ where: { id } });
+    const server = await this.getServer(id);
     if (!server) {
       throw new AppError(404, 'Server not found');
     }
 
-    const configPath = path.join(server.path, 'config.json');
-
     try {
-      await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+      // Use adapter to update config (handles different formats per game type)
+      const adapter = AdapterFactory.create(server);
+      await adapter.updateConfig(config);
       logger.info('Server config updated', { serverId: id });
       return config;
     } catch (error) {
@@ -341,9 +414,18 @@ export class ServerService {
   }
 
   private transformServer(server: any): Server {
+    let config = server.config;
+    if (typeof config === 'string') {
+      try {
+        config = JSON.parse(config);
+      } catch (err) {
+        logger.error(`Failed to parse config JSON for server ${server.id}`, { config, error: err });
+        config = {};
+      }
+    }
     return {
       ...server,
-      config: typeof server.config === 'string' ? JSON.parse(server.config) : server.config,
+      config: config ?? {},
     };
   }
 }

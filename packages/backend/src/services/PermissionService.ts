@@ -1,7 +1,20 @@
 import { PrismaClient } from '@prisma/client';
 import type { PanelPermission, ServerPermissionLevel } from '@deployy/shared';
+import { logger } from '../utils/logger.js';
 
 const PERMISSION_LEVELS: ServerPermissionLevel[] = ['viewer', 'operator', 'admin', 'owner'];
+
+/**
+ * Safely parse a JSON permissions string, returning empty array on failure.
+ */
+function safeParsePermissions(raw: string, context?: string): PanelPermission[] {
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.error(`Failed to parse permissions JSON${context ? ` (${context})` : ''}`, { raw, error: err });
+    return [];
+  }
+}
 
 export class PermissionService {
   constructor(private prisma: PrismaClient) {}
@@ -18,7 +31,7 @@ export class PermissionService {
 
     if (!user || !user.role) return false;
 
-    const permissions: PanelPermission[] = JSON.parse(user.role.permissions);
+    const permissions = safeParsePermissions(user.role.permissions, `hasPanelPermission:${user.role.name}`);
 
     // panel.admin bypasses all permission checks
     if (permissions.includes('panel.admin')) return true;
@@ -42,7 +55,7 @@ export class PermissionService {
     });
 
     if (user?.role) {
-      const permissions: PanelPermission[] = JSON.parse(user.role.permissions);
+      const permissions = safeParsePermissions(user.role.permissions, `hasServerPermission:${user.role.name}`);
       if (permissions.includes('panel.admin')) return true;
     }
 
@@ -74,7 +87,7 @@ export class PermissionService {
     });
 
     if (user?.role) {
-      const permissions: PanelPermission[] = JSON.parse(user.role.permissions);
+      const permissions = safeParsePermissions(user.role.permissions, `getServerPermissionLevel:${user.role.name}`);
       if (permissions.includes('panel.admin')) return 'owner';
     }
 
@@ -96,7 +109,7 @@ export class PermissionService {
     });
 
     if (user?.role) {
-      const permissions: PanelPermission[] = JSON.parse(user.role.permissions);
+      const permissions = safeParsePermissions(user.role.permissions, `getAccessibleServerIds:${user.role.name}`);
       if (permissions.includes('panel.admin') || permissions.includes('servers.viewAll')) {
         return 'all';
       }
@@ -120,7 +133,7 @@ export class PermissionService {
     });
 
     if (!user?.role) return [];
-    return JSON.parse(user.role.permissions);
+    return safeParsePermissions(user.role.permissions, `getUserPanelPermissions:${user.role.name}`);
   }
 
   /**

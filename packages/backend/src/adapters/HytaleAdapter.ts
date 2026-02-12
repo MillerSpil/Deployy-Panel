@@ -1,70 +1,13 @@
 import { BaseAdapter } from './BaseAdapter.js';
-import { spawn, execSync, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdir, writeFile, readFile, access } from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
 import type { InstallConfig, InstallResult, GameConfig } from '@deployy/shared';
 import { logger } from '../utils/logger.js';
+import { findJavaPath } from '../utils/java.js';
 
 function stripAnsi(str: string): string {
-  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '').replace(/\[[\d;]*m/g, '');
-}
-
-// SECURITY: Validate path doesn't contain shell metacharacters
-function isValidJavaPath(javaPath: string): boolean {
-  // Allow alphanumeric, spaces, hyphens, underscores, dots, colons (drive letters), slashes, and backslashes
-  // Reject shell metacharacters like $, `, ", ', ;, |, &, <, >, (, ), {, }, [, ], !, ^, ~, *
-  const safePathRegex = /^[a-zA-Z0-9\s\-_./\\:]+$/;
-  return safePathRegex.test(javaPath);
-}
-
-function findJavaPath(): string {
-  const isWindows = os.platform() === 'win32';
-  const javaCmd = isWindows ? 'java.exe' : 'java';
-
-  try {
-    const whereCmd = isWindows ? 'where java' : 'which java';
-    const result = execSync(whereCmd, { encoding: 'utf-8', timeout: 5000 }).trim();
-    if (result) {
-      const firstPath = result.split('\n')[0].trim();
-      // SECURITY: Validate the path from where/which doesn't contain shell metacharacters
-      if (!isValidJavaPath(firstPath)) {
-        logger.warn('Java path from PATH contains invalid characters, ignoring', { path: firstPath });
-      } else {
-        logger.info(`Found Java at: ${firstPath}`);
-        return firstPath;
-      }
-    }
-  } catch {
-    logger.warn('Java not found in PATH, checking common locations...');
-  }
-
-  if (isWindows) {
-    const commonPaths = [
-      'C:\\Program Files\\Java\\jdk-25.0.2\\bin\\java.exe',
-      'C:\\Program Files\\Java\\jdk-21\\bin\\java.exe',
-      'C:\\Program Files\\Java\\jdk-17\\bin\\java.exe',
-      'C:\\Program Files\\Eclipse Adoptium\\jdk-21\\bin\\java.exe',
-      'C:\\Program Files\\Microsoft\\jdk-17\\bin\\java.exe',
-    ];
-
-    for (const javaPath of commonPaths) {
-      try {
-        // SECURITY: Use spawnSync instead of execSync to avoid shell interpretation
-        const result = spawnSync(javaPath, ['-version'], {
-          encoding: 'utf-8',
-          timeout: 5000,
-          stdio: 'pipe',
-        });
-        if (result.status === 0 || result.stderr?.includes('version')) {
-          logger.info(`Found Java at: ${javaPath}`);
-          return javaPath;
-        }
-      } catch {}
-    }
-  }
-
-  return javaCmd;
+  return str.replace(/(\x1B\[[0-9;]*[a-zA-Z]|\[[\d;]*m)/g, '');
 }
 
 export class HytaleAdapter extends BaseAdapter {
@@ -74,6 +17,11 @@ export class HytaleAdapter extends BaseAdapter {
     MaxPlayers: 100,
     MaxViewRadius: 12,
   };
+
+  private get ram(): number {
+    const config = this.server.config as Record<string, unknown>;
+    return (config.ram as number) || 6;
+  }
 
   async install(config: InstallConfig): Promise<InstallResult> {
     try {
@@ -162,11 +110,14 @@ export class HytaleAdapter extends BaseAdapter {
     }
 
     const javaCmd = findJavaPath();
+    const ram = this.ram;
+    const ramStr = `${ram}G`;
     this.emitLog(`[INFO] Using Java: ${javaCmd}`);
+    this.emitLog(`[INFO] RAM: ${ram}GB`);
 
     const args = [
-      '-Xms6G',
-      '-Xmx6G',
+      `-Xms${ramStr}`,
+      `-Xmx${ramStr}`,
       '-XX:+UseG1GC',
       '-XX:AOTCache=HytaleServer.aot',
       '-jar',
@@ -186,56 +137,71 @@ export class HytaleAdapter extends BaseAdapter {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      this.process.stdout?.on('data', (data) => {
-        const line = data.toString().trim();
-        if (line) {
-          logger.debug(`[${this.server.id}] ${stripAnsi(line)}`);
-          this.emitLog(line);
-        }
-      });
+      // Use a promise that resolves on successful start or rejects on early failure
+      await new Promise<void>((resolve, reject) => {
+        let resolved = false;
+        const resolveOnce = () => {
+          if (!resolved) { resolved = true; resolve(); }
+        };
+        const rejectOnce = (err: Error) => {
+          if (!resolved) { resolved = true; reject(err); }
+        };
 
-      this.process.stderr?.on('data', (data) => {
-        const line = data.toString().trim();
-        if (line) {
-          logger.error(`[${this.server.id}] ${stripAnsi(line)}`);
-          this.emitLog(line);
-        }
-      });
+        this.process!.stdout?.on('data', (data) => {
+          const line = data.toString().trim();
+          if (line) {
+            logger.debug(`[${this.server.id}] ${stripAnsi(line)}`);
+            this.emitLog(line);
+          }
+        });
 
-      this.process.on('exit', (code, signal) => {
-        const exitMsg = `Server exited with code ${code}, signal ${signal}`;
-        logger.info(`Server ${this.server.id}: ${exitMsg}`);
-        this.emitLog(`[INFO] ${exitMsg}`);
-        this.process = null;
+        this.process!.stderr?.on('data', (data) => {
+          const line = data.toString().trim();
+          if (line) {
+            // stderr isn't always errors — Java writes info here too
+            logger.debug(`[${this.server.id}] ${stripAnsi(line)}`);
+            this.emitLog(line);
+          }
+        });
 
-        if (code !== 0 && signal !== 'SIGTERM') {
-          this.emitLog(`[ERROR] Server crashed unexpectedly`);
+        this.process!.on('exit', (code, signal) => {
+          const exitMsg = `Server exited with code ${code}, signal ${signal}`;
+          logger.info(`Server ${this.server.id}: ${exitMsg}`);
+          this.emitLog(`[INFO] ${exitMsg}`);
+          this.process = null;
+
+          if (code !== 0 && signal !== 'SIGTERM') {
+            this.emitLog(`[ERROR] Server crashed unexpectedly`);
+            this.setStatus('crashed');
+            rejectOnce(new Error(`Server exited with code ${code}`));
+          } else {
+            this.setStatus('stopped');
+          }
+        });
+
+        this.process!.on('error', (error) => {
+          const errorMsg = error.message || 'Unknown process error';
+          logger.error(`Server ${this.server.id} process error: ${errorMsg}`);
+          this.emitLog(`[ERROR] Process error: ${errorMsg}`);
+          if (error.message.includes('ENOENT')) {
+            this.emitLog(`[ERROR] Java not found. Please install Java and ensure it's in your PATH`);
+          }
           this.setStatus('crashed');
-        } else {
-          this.setStatus('stopped');
-        }
+          this.process = null;
+          rejectOnce(new Error(errorMsg));
+        });
+
+        // If the process survives 2 seconds, consider it started
+        setTimeout(() => {
+          if (this.process) {
+            resolveOnce();
+          }
+        }, 2000);
       });
 
-      this.process.on('error', (error) => {
-        const errorMsg = error.message || 'Unknown process error';
-        logger.error(`Server ${this.server.id} process error: ${errorMsg}`);
-        this.emitLog(`[ERROR] Process error: ${errorMsg}`);
-        if (error.message.includes('ENOENT')) {
-          this.emitLog(`[ERROR] Java not found. Please install Java and ensure it's in your PATH`);
-        }
-        this.setStatus('crashed');
-        this.process = null;
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      if (this.process) {
-        this.setStatus('running');
-        this.emitLog(`Server started successfully`);
-        logger.info(`Server ${this.server.id} started successfully`);
-      } else {
-        throw new Error('Process failed to start - check logs above for details');
-      }
+      this.setStatus('running');
+      this.emitLog(`Server started successfully`);
+      logger.info(`Server ${this.server.id} started successfully`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       this.emitLog(`[ERROR] Failed to start: ${errorMsg}`);
@@ -263,18 +229,33 @@ export class HytaleAdapter extends BaseAdapter {
 
       const processToStop = this.process;
 
+      // Escalation chain: stop command → SIGTERM → SIGKILL
+      // Step 1: Send "stop" command via stdin
+      const stdinOk = processToStop.stdin?.writable;
+      if (stdinOk) {
+        processToStop.stdin!.write('stop\n');
+        this.emitLog('[INFO] Sent stop command');
+      } else {
+        this.emitLog('[WARN] stdin not writable, escalating to SIGTERM');
+      }
+
+      // Step 2: SIGTERM after half the timeout if stop command didn't work
+      const halfTimeout = Math.floor(timeout / 2);
+      const sigTermTimeout = setTimeout(() => {
+        if (processToStop && !processToStop.killed) {
+          this.emitLog('[WARN] Server did not respond to stop command, sending SIGTERM...');
+          processToStop.kill('SIGTERM');
+        }
+      }, stdinOk ? halfTimeout : 0);
+
+      // Step 3: SIGKILL at the full timeout as last resort
       const killTimeout = setTimeout(() => {
         if (processToStop && !processToStop.killed) {
           logger.warn(`Force killing server ${this.server.id}`);
+          this.emitLog('[WARN] Server did not stop gracefully, force killing...');
           processToStop.kill('SIGKILL');
         }
       }, timeout);
-
-      const sigTermTimeout = setTimeout(() => {
-        if (processToStop && !processToStop.killed) {
-          processToStop.kill('SIGTERM');
-        }
-      }, 5000);
 
       processToStop.once('exit', () => {
         clearTimeout(killTimeout);
@@ -285,15 +266,21 @@ export class HytaleAdapter extends BaseAdapter {
         logger.info(`Server ${this.server.id} stopped`);
         resolve();
       });
-
-      processToStop.stdin?.write('stop\n');
     });
   }
 
   async getConfig(): Promise<GameConfig> {
     const configPath = path.join(this.server.path, 'config.json');
-    const content = await readFile(configPath, 'utf-8');
-    return JSON.parse(content);
+
+    try {
+      const content = await readFile(configPath, 'utf-8');
+      return JSON.parse(content);
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return { ...HytaleAdapter.DEFAULT_CONFIG };
+      }
+      throw error;
+    }
   }
 
   async updateConfig(config: Partial<GameConfig>): Promise<void> {

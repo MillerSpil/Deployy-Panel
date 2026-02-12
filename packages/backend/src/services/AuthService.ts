@@ -112,9 +112,21 @@ export class AuthService {
         throw new AppError(401, 'User not found');
       }
 
-      const permissions: PanelPermission[] = user.role
-        ? JSON.parse(user.role.permissions)
-        : [];
+      let permissions: PanelPermission[] = [];
+      if (user.role) {
+        try {
+          permissions = JSON.parse(user.role.permissions);
+        } catch (parseErr) {
+          logger.error('Failed to parse role permissions JSON', {
+            roleId: user.role.id,
+            roleName: user.role.name,
+            raw: user.role.permissions,
+            error: parseErr,
+          });
+          // Fall back to empty permissions rather than crashing auth entirely
+          permissions = [];
+        }
+      }
 
       return {
         id: user.id,
@@ -125,6 +137,7 @@ export class AuthService {
       };
     } catch (error) {
       if (error instanceof AppError) throw error;
+      logger.error('Token verification failed', { error });
       throw new AppError(401, 'Invalid or expired token');
     }
   }

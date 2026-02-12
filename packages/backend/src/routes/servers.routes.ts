@@ -226,15 +226,30 @@ export const createServerRouter = (
     }
   );
 
-  // Start Hytale server download (requires admin)
+  // Start server update/download (requires admin)
   router.post(
     '/:id/download',
     validateParams(z.object({ id: serverIdSchema })),
     permissions.checkServerPermission(getServerId, 'admin'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        await serverService.startHytaleDownload(req.params.id);
-        res.json({ success: true, message: 'Download started' });
+        const server = await serverService.getServer(req.params.id);
+        if (!server) {
+          res.status(404).json({ error: 'Server not found' });
+          return;
+        }
+
+        if (server.gameType === 'minecraft') {
+          const targetVersion = req.body?.version;
+          await serverService.startMinecraftUpdate(req.params.id, targetVersion);
+        } else if (server.gameType === 'hytale') {
+          await serverService.startHytaleDownload(req.params.id);
+        } else {
+          res.status(400).json({ error: 'Updates not supported for this game type' });
+          return;
+        }
+
+        res.json({ success: true, message: 'Update started' });
       } catch (error) {
         next(error);
       }

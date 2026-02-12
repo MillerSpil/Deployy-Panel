@@ -17,9 +17,15 @@ export const errorHandler = (
   error: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
-  logger.error('Request error', { error, path: req.path, method: req.method });
+  logger.error('Request error', {
+    error: error.message,
+    stack: error.stack,
+    path: req.path,
+    method: req.method,
+    name: error.constructor.name,
+  });
 
   if (error instanceof ZodError) {
     return res.status(400).json({
@@ -34,7 +40,9 @@ export const errorHandler = (
     });
   }
 
+  // Include error name in dev for easier debugging
+  const isDev = process.env.NODE_ENV !== 'production';
   return res.status(500).json({
-    error: 'Internal server error',
+    error: isDev ? `Internal server error: ${error.message}` : 'Internal server error',
   });
 };

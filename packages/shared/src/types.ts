@@ -1,5 +1,9 @@
 export type GameType = 'hytale' | 'minecraft';
 
+export type MinecraftFlavor = 'vanilla' | 'paper';
+
+// RAM is specified in gigabytes as a whole number (e.g., 4 = 4GB)
+
 export type ServerStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed';
 
 // Hytale server download status
@@ -10,6 +14,13 @@ export type HytaleDownloadStatus =
   | 'downloading_server'
   | 'extracting_server'
   | 'cleanup'
+  | 'completed'
+  | 'error';
+
+// Minecraft server download status
+export type MinecraftDownloadStatus =
+  | 'checking_version'
+  | 'downloading'
   | 'completed'
   | 'error';
 
@@ -51,6 +62,8 @@ export interface InstallConfig {
   maxPlayers: number;
   version?: string;
   installPath: string;
+  ram?: number;
+  flavor?: MinecraftFlavor;
 }
 
 export interface InstallResult {

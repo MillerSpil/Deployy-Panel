@@ -30,6 +30,8 @@ export const createServerSchema = z.object({
     .max(1000, 'Maximum 1000 players'),
   version: z.string().optional(),
   autoDownload: z.boolean().optional(),
+  flavor: z.enum(['vanilla', 'paper']).optional(),
+  ram: z.number().int().min(1, 'Minimum 1GB RAM').max(64, 'Maximum 64GB RAM').optional(),
 });
 
 export const updateServerSchema = z.object({

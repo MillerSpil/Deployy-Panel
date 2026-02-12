@@ -1,4 +1,4 @@
-import type { PerformanceMetrics, HytaleDownloadStatus, UpdateStatus, EnvMergeResult } from './types';
+import type { PerformanceMetrics, HytaleDownloadStatus, MinecraftDownloadStatus, UpdateStatus, EnvMergeResult } from './types';
 
 export interface ClientToServerEvents {
   'subscribe:server': (data: { serverId: string }) => void;
@@ -6,6 +6,8 @@ export interface ClientToServerEvents {
   command: (data: { serverId: string; command: string }) => void;
   'hytale:download:subscribe': (data: { serverId: string }) => void;
   'hytale:download:unsubscribe': (data: { serverId: string }) => void;
+  'minecraft:download:subscribe': (data: { serverId: string }) => void;
+  'minecraft:download:unsubscribe': (data: { serverId: string }) => void;
   'update:subscribe': () => void;
   'update:unsubscribe': () => void;
 }
@@ -21,6 +23,12 @@ export interface ServerToClientEvents {
     authUrl?: string;
   }) => void;
   'hytale:download:log': (data: { serverId: string; line: string; timestamp: string }) => void;
+  'minecraft:download:progress': (data: {
+    serverId: string;
+    status: MinecraftDownloadStatus;
+    message: string;
+  }) => void;
+  'minecraft:download:log': (data: { serverId: string; line: string; timestamp: string }) => void;
   'update:progress': (data: {
     status: UpdateStatus;
     message: string;

@@ -37,10 +37,12 @@
 
 ### Supported Games
 
-| Game | Status |
-|------|--------|
-| Hytale | Supported (with auto-download) |
-| Minecraft | Planned |
+| Game | Status | Flavors |
+|------|--------|---------|
+| Hytale | Supported (with auto-download via OAuth) | — |
+| Minecraft | Supported (auto-download JAR) | Vanilla, Paper |
+
+> **Note:** Minecraft currently supports **Vanilla** and **Paper** server types. Additional flavors (Forge, Fabric, Spigot, etc.) are planned for future releases.
 
 ---
 
@@ -427,6 +429,54 @@ Change with `SERVERS_BASE_PATH` in your `.env` file.
 - Java 25+ (Hytale uses modern Java features)
 - 6-8GB RAM recommended
 - UDP port 5520 (Hytale uses QUIC protocol)
+
+</details>
+
+## Minecraft Server Management
+
+<details>
+<summary><strong>Creating a Server</strong></summary>
+
+1. Click "Create Server" on the dashboard
+2. Select "Minecraft" as the game type
+3. Choose server type: **Vanilla** or **Paper**
+4. Select a version (or leave as "latest")
+5. Set RAM allocation (default: 4GB, recommended: 4-8GB)
+6. Enter server name and port (default: 25565)
+7. Server JAR downloads automatically from Mojang/PaperMC
+
+</details>
+
+<details>
+<summary><strong>Updating a Server</strong></summary>
+
+1. Navigate to server's "Updates" tab
+2. Stop the server if running
+3. Select target version (or "latest")
+4. Click "Update Server"
+5. New JAR is downloaded atomically (no corruption risk)
+
+</details>
+
+<details>
+<summary><strong>Server Requirements</strong></summary>
+
+- Java 17+ (Java 21 recommended)
+- 4-8GB RAM recommended
+- TCP port 25565 (default Minecraft port)
+- Paper servers use [Aikar's optimized JVM flags](https://docs.papermc.io/paper/aikars-flags) automatically
+
+</details>
+
+<details>
+<summary><strong>Supported Flavors</strong></summary>
+
+| Flavor | Description |
+|--------|-------------|
+| **Vanilla** | Official Mojang server JAR |
+| **Paper** | High-performance fork with plugin support |
+
+More flavors (Forge, Fabric, Spigot, etc.) are planned for future releases.
 
 </details>
 

@@ -1,8 +1,20 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import type { UserWithRole, PanelPermission, Role } from '@deployy/shared';
+import type { UserWithRole, PanelPermission } from '@deployy/shared';
 import { AppError } from '../middleware/errorHandler.js';
 import { logger } from '../utils/logger.js';
+
+/**
+ * Safely parse a JSON permissions string, returning empty array on failure.
+ */
+function safeParsePermissions(raw: string, context?: string): PanelPermission[] {
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    logger.error(`Failed to parse permissions JSON${context ? ` (${context})` : ''}`, { raw, error: err });
+    return [];
+  }
+}
 
 const BCRYPT_ROUNDS = 14;
 
@@ -87,8 +99,8 @@ export class UserService {
 
     // Prevent removing your own admin permissions
     if (id === currentUserId && data.roleId !== undefined) {
-      const currentPermissions: PanelPermission[] = user.role
-        ? JSON.parse(user.role.permissions)
+      const currentPermissions = user.role
+        ? safeParsePermissions(user.role.permissions, 'updateUser:currentRole')
         : [];
 
       if (currentPermissions.includes('panel.admin')) {
@@ -100,7 +112,7 @@ export class UserService {
         if (data.roleId) {
           const newRole = await this.prisma.role.findUnique({ where: { id: data.roleId } });
           if (newRole) {
-            const newPermissions: PanelPermission[] = JSON.parse(newRole.permissions);
+            const newPermissions = safeParsePermissions(newRole.permissions, 'updateUser:newRole');
             if (!newPermissions.includes('panel.admin')) {
               throw new AppError(403, 'Cannot remove your own admin permissions');
             }
@@ -157,7 +169,7 @@ export class UserService {
 
     // Check if this is the last admin user
     if (user.role) {
-      const permissions: PanelPermission[] = JSON.parse(user.role.permissions);
+      const permissions = safeParsePermissions(user.role.permissions, 'deleteUser');
       if (permissions.includes('panel.admin')) {
         // Count how many admin users exist
         const adminRoles = await this.prisma.role.findMany({
@@ -209,7 +221,7 @@ export class UserService {
             id: user.role.id,
             name: user.role.name,
             description: user.role.description,
-            permissions: JSON.parse(user.role.permissions) as PanelPermission[],
+            permissions: safeParsePermissions(user.role.permissions, 'transformUser'),
             isSystem: user.role.isSystem,
             createdAt: user.role.createdAt,
             updatedAt: user.role.updatedAt,

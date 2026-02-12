@@ -28,6 +28,8 @@ import { createBackupsRouter } from './routes/backups.routes.js';
 import { createFilesRouter } from './routes/files.routes.js';
 import { createSchedulesRouter } from './routes/schedules.routes.js';
 import { createUpdateRouter } from './routes/update.routes.js';
+import { createMinecraftRouter } from './routes/minecraft.routes.js';
+import { MinecraftVersionService } from './services/MinecraftVersionService.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createPermissionMiddleware } from './middleware/permissions.js';
 import { setupWebSocketHandlers } from './websocket/handlers.js';
@@ -53,6 +55,7 @@ async function main() {
   const fileService = new FileService(prisma);
   const schedulerService = new SchedulerService(prisma);
   const updateService = new UpdateService(prisma);
+  const minecraftVersionService = new MinecraftVersionService();
 
   // Set scheduler dependencies and initialize
   schedulerService.setDependencies({
@@ -118,8 +121,10 @@ async function main() {
 
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 1000,
     message: 'Too many requests from this IP',
+    standardHeaders: true,
+    legacyHeaders: false,
   });
   app.use('/api', limiter);
 
@@ -176,6 +181,9 @@ async function main() {
   // Update routes (mostly admin-only, but version endpoint is public)
   app.use('/api/update', requireAuth, createUpdateRouter(updateService, permissions));
 
+  // Minecraft version routes
+  app.use('/api/minecraft', createMinecraftRouter(minecraftVersionService, authService));
+
   // Serve frontend static files in production
   if (process.env.NODE_ENV === 'production') {
     const __filename = fileURLToPath(import.meta.url);
@@ -229,6 +237,15 @@ async function main() {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 }
+
+// Prevent silent crashes from unhandled errors
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled promise rejection', { reason, promise: String(promise) });
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception - process will continue but may be unstable', { error: error.message, stack: error.stack });
+});
 
 main().catch((error) => {
   logger.error('Fatal error during startup', { error });
