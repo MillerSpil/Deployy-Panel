@@ -13,6 +13,7 @@ const updateSettingsSchema = z.object({
 const ALLOWED_DOWNLOAD_ORIGINS = [
   'https://github.com/MillerSpil/Deployy-Panel/',
   'https://codeload.github.com/MillerSpil/Deployy-Panel/',
+  'https://api.github.com/repos/MillerSpil/Deployy-Panel/',
 ];
 
 const applyUpdateSchema = z.object({

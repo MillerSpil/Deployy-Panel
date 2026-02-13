@@ -404,7 +404,7 @@ This is **test mode** data. Set UPDATE_TEST_MODE=false to check real GitHub rele
         const options = {
           headers: {
             'User-Agent': 'Deployy-Panel',
-            Accept: 'application/octet-stream',
+            Accept: 'application/vnd.github+json',
           },
         };
 
@@ -604,6 +604,20 @@ This is **test mode** data. Set UPDATE_TEST_MODE=false to check real GitHub rele
     } catch (error) {
       logger.error('pnpm install failed', { error });
       throw new Error('Failed to install dependencies. Please run "pnpm install" manually.');
+    }
+
+    // Build all packages (shared must build before frontend/backend)
+    try {
+      this.emitProgress('installing_deps', 'Building panel (this may take a while)...');
+      await execAsync(`${pnpmCommand} build`, {
+        cwd: this.panelRootPath,
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: 10 * 60 * 1000, // 10 minute timeout for build
+      });
+      logger.info('pnpm build completed');
+    } catch (error) {
+      logger.error('pnpm build failed', { error });
+      throw new Error('Failed to build panel. Please run "pnpm build" manually.');
     }
   }
 
