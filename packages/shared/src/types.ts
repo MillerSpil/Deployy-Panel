@@ -311,6 +311,8 @@ export interface UpdateInfo {
 
 export interface PanelSettings {
   autoCheckUpdates: boolean;
+  telemetryEnabled: boolean;
+  installId?: string;
 }
 
 export interface EnvMergeResult {

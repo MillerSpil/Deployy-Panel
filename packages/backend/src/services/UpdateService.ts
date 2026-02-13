@@ -30,7 +30,7 @@ import type {
 } from '@deployy/shared';
 
 const GITHUB_API_URL = 'https://api.github.com/repos/MillerSpil/Deployy-Panel/releases/latest';
-const DEFAULT_SETTINGS: PanelSettings = { autoCheckUpdates: true };
+const DEFAULT_SETTINGS: PanelSettings = { autoCheckUpdates: true, telemetryEnabled: true };
 const UPDATE_TEST_MODE = process.env.UPDATE_TEST_MODE === 'true';
 
 // Files and directories to preserve during updates (never overwrite)

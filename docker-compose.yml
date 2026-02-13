@@ -9,6 +9,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/data/deployy.db
+      - DOCKER_CONTAINER=true
     env_file:
       - .env
     restart: unless-stopped

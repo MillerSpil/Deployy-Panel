@@ -19,6 +19,7 @@ import { BackupService } from './services/BackupService.js';
 import { FileService } from './services/FileService.js';
 import { SchedulerService } from './services/SchedulerService.js';
 import { UpdateService } from './services/UpdateService.js';
+import { TelemetryService } from './services/TelemetryService.js';
 import { createServerRouter } from './routes/servers.routes.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createRolesRouter } from './routes/roles.routes.js';
@@ -56,6 +57,8 @@ async function main() {
   const schedulerService = new SchedulerService(prisma);
   const updateService = new UpdateService(prisma);
   const minecraftVersionService = new MinecraftVersionService();
+  const telemetryService = new TelemetryService(prisma);
+  telemetryService.setDependencies({ updateService });
 
   // Set scheduler dependencies and initialize
   schedulerService.setDependencies({
@@ -215,6 +218,9 @@ async function main() {
     } catch (err) {
       logger.warn('Failed to check update settings', { error: err });
     }
+
+    // Initialize telemetry (first ping + 24h interval)
+    await telemetryService.initialize();
   });
 
   const shutdown = async () => {
@@ -223,6 +229,10 @@ async function main() {
     // Stop all scheduled tasks
     await schedulerService.shutdown();
     logger.info('Scheduler stopped');
+
+    // Stop telemetry
+    await telemetryService.shutdown();
+    logger.info('Telemetry stopped');
 
     httpServer.close(() => {
       logger.info('HTTP server closed');

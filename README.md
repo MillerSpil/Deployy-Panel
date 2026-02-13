@@ -6,7 +6,7 @@
 
 <p align="center">
   Open-source, extensible game server management panel.<br>
-  Currently supporting Hytale, with more games coming soon.
+  Currently supporting Hytale and Minecraft, with more games coming soon.
 </p>
 
 <p align="center">
@@ -34,6 +34,7 @@
 - **Self-Updater** - One-click updates from GitHub releases
 - **Cross-Platform** - Windows and Linux support
 - **Docker Support** - One-command deployment
+- **Anonymous Telemetry** - Opt-out usage analytics (no PII collected)
 
 ### Supported Games
 
@@ -369,6 +370,9 @@ SERVERS_BASE_PATH="C:\\DeployyServers"  # Windows
 # Authentication (REQUIRED)
 JWT_SECRET="your-secret-key-minimum-32-characters-here"
 JWT_EXPIRATION="24h"
+
+# Telemetry (set to false to disable)
+TELEMETRY_ENABLED=true
 ```
 
 **Generate JWT_SECRET:**
@@ -533,6 +537,41 @@ More flavors (Forge, Fabric, Spigot, etc.) are planned for future releases.
 - [ ] Firewall configured (only expose necessary ports)
 - [ ] Regular backups enabled
 - [ ] Keep panel updated
+
+</details>
+
+---
+
+## Telemetry
+
+Deployy Panel collects anonymous usage statistics to help understand how the panel is being used. **No personal data is collected.**
+
+<details>
+<summary><strong>What's Collected</strong></summary>
+
+- Random install ID (UUID, not tied to any user)
+- Panel version, OS, architecture
+- Server counts (total, running, by game type)
+- Feature usage counts (users, backups, scheduled tasks)
+- System specs (memory, CPU cores)
+
+**Not collected:** IP addresses, emails, usernames, server names, file paths, or any personally identifiable information.
+
+</details>
+
+<details>
+<summary><strong>Opting Out</strong></summary>
+
+**Option 1 - Panel Settings:**
+Go to Settings in the admin panel and toggle off "Anonymous telemetry"
+
+**Option 2 - Environment Variable:**
+Add to your `.env` file:
+```env
+TELEMETRY_ENABLED=false
+```
+
+The environment variable takes priority over the panel setting.
 
 </details>
 

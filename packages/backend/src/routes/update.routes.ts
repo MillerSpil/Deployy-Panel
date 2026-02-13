@@ -7,6 +7,7 @@ import { logger } from '../utils/logger.js';
 
 const updateSettingsSchema = z.object({
   autoCheckUpdates: z.boolean().optional(),
+  telemetryEnabled: z.boolean().optional(),
 });
 
 // SECURITY: Only allow GitHub releases from the official repository

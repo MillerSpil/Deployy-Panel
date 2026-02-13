@@ -20,6 +20,8 @@ RUN pnpm --filter @deployy/backend build
 
 WORKDIR /app/packages/backend
 
+ENV DOCKER_CONTAINER=true
+
 EXPOSE 3000
 
 CMD ["sh", "-c", "npx prisma db push --skip-generate && npx prisma db seed && node dist/index.js"]
