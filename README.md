@@ -8,7 +8,10 @@
   Open-source, extensible game server management panel.<br>
   Currently supporting Hytale and Minecraft, with more games coming soon.
 </p>
-<h1 align="center">Discord: https://discord.gg/r9qxcS2d8y</h1>
+<p align="center">
+  <a href="https://discord.gg/r9qxcS2d8y">Discord</a> •
+  <a href="https://github.com/MillerSpil/Deployy-Panel">GitHub</a>
+</p>
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#screenshots">Screenshots</a> •
@@ -75,6 +78,8 @@
 ---
 
 ## Requirements
+
+> **Docker users:** These are handled inside the container — you only need Docker installed.
 
 - **Node.js** 20+
 - **pnpm** 8+
@@ -155,6 +160,8 @@ docker compose down         # Stop
 docker compose up -d        # Start
 docker compose up -d --build --no-cache  # Rebuild
 ```
+
+> **HTTPS:** Docker does not handle SSL. For production, put a reverse proxy (Caddy, Nginx) in front of port 3000. See the [Production Deployment](#production-deployment) section.
 
 </details>
 
@@ -477,6 +484,12 @@ sudo systemctl restart nginx
 Create `.env` in `packages/backend/` (or project root for Docker):
 
 ```env
+# ─── Docker Users ───
+# docker-compose.yml handles DATABASE_URL, NODE_ENV, and SERVERS_BASE_PATH for you.
+# You only need to set:
+#   JWT_SECRET   — generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+#   FRONTEND_URL — your domain or IP (e.g. "https://panel.example.com")
+
 # Database
 DATABASE_URL="file:./dev.db"
 
@@ -484,12 +497,11 @@ DATABASE_URL="file:./dev.db"
 PORT=3000
 NODE_ENV=development
 
-# Frontend URL (dev only - for CORS)
+# Frontend URL (used for CORS — set to your domain/IP in production)
 FRONTEND_URL="http://localhost:5173"
 
 # Game server storage (relative to backend, or absolute path)
 SERVERS_BASE_PATH="./servers"
-# SERVERS_BASE_PATH="/opt/deployy-servers"  # Linux absolute example
 
 # Authentication (REQUIRED)
 JWT_SECRET="your-secret-key-minimum-32-characters-here"
@@ -823,7 +835,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 <details>
 <summary><strong>Server won't start</strong></summary>
 
-- Check Java 25+ is installed: `java --version`
+- Check Java is installed: `java --version` (17+ for Minecraft, 25+ for Hytale)
 - Ensure the port isn't in use
 - Check server logs in the console tab
 
