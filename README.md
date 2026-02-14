@@ -8,7 +8,7 @@
   Open-source, extensible game server management panel.<br>
   Currently supporting Hytale and Minecraft, with more games coming soon.
 </p>
-
+<h1 align="center">[Discord](https://discord.gg/r9qxcS2d8y)</h1>
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#screenshots">Screenshots</a> •
@@ -878,5 +878,7 @@ AGPL-3.0 - See [LICENSE](LICENSE)
 
 ## Links
 
+- [Discord](https://discord.gg/r9qxcS2d8y)
 - [GitHub Issues](https://github.com/MillerSpil/Deployy-Panel/issues)
 - [Hytale](https://hytale.com)
+
