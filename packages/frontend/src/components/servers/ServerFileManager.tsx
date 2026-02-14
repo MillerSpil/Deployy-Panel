@@ -30,6 +30,9 @@ export function ServerFileManager({ serverId }: ServerFileManagerProps) {
   const [newName, setNewName] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
 
+  // Upload progress
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+
   // Drag and drop
   const [isDragging, setIsDragging] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -203,18 +206,36 @@ export function ServerFileManager({ serverId }: ServerFileManagerProps) {
     window.open(url, '_blank');
   };
 
+  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
+
+    // Check file sizes
+    const oversized: string[] = [];
+    for (let i = 0; i < fileList.length; i++) {
+      if (fileList[i].size > MAX_FILE_SIZE) {
+        oversized.push(fileList[i].name);
+      }
+    }
+
+    if (oversized.length > 0) {
+      setError(`Files exceed 100MB limit: ${oversized.join(', ')}`);
+      return;
+    }
 
     try {
       setError(null);
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
+        setUploadProgress(`Uploading file ${i + 1}/${fileList.length}: ${file.name}`);
         await filesApi.upload(serverId, currentPath, file);
       }
+      setUploadProgress(null);
       setSuccess(`Uploaded ${fileList.length} file(s)`);
       fetchFiles(currentPath);
     } catch (err) {
+      setUploadProgress(null);
       setError(err instanceof Error ? err.message : 'Failed to upload');
     }
   };
@@ -307,6 +328,12 @@ export function ServerFileManager({ serverId }: ServerFileManagerProps) {
         {success && (
           <div className="bg-green-900/50 border border-green-500 rounded-lg p-3 mb-4">
             <p className="text-green-400">{success}</p>
+          </div>
+        )}
+        {uploadProgress && (
+          <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3 mb-4 flex items-center gap-2">
+            <div className="animate-spin h-4 w-4 border-2 border-primary-400 rounded-full border-t-transparent flex-shrink-0" />
+            <p className="text-slate-300 text-sm">{uploadProgress}</p>
           </div>
         )}
 
@@ -434,7 +461,7 @@ export function ServerFileManager({ serverId }: ServerFileManagerProps) {
                       <FileIcon className="w-4 h-4 flex-shrink-0" extension={file.extension} />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="text-slate-200 truncate">{file.name}</div>
+                      <div className="text-slate-200 truncate" title={file.name}>{file.name}</div>
                       <div className="text-slate-500 text-xs">
                         {file.type === 'file' ? formatSize(file.size) + ' · ' : ''}
                         {formatDateShort(file.modified)}

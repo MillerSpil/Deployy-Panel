@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useServers } from '@/hooks/useServers';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useToast } from '@/hooks/useToast';
 import { ServerList } from '@/components/servers/ServerList';
 import { CreateServerModal } from '@/components/servers/CreateServerModal';
 import { Button } from '@/components/common/Button';
@@ -20,14 +21,15 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { servers, loading, error, refetch } = useServers();
   const { canCreateServer } = usePermissions();
+  const { addToast } = useToast();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleStart = async (id: string) => {
     try {
       await serversApi.start(id);
       refetch();
-    } catch {
-      // Error handled by API client (5xx logged, 4xx shown in UI)
+    } catch (err) {
+      addToast('error', err instanceof Error ? err.message : 'Failed to start server');
     }
   };
 
@@ -35,8 +37,8 @@ export function DashboardPage() {
     try {
       await serversApi.stop(id);
       refetch();
-    } catch {
-      // Error handled by API client (5xx logged, 4xx shown in UI)
+    } catch (err) {
+      addToast('error', err instanceof Error ? err.message : 'Failed to stop server');
     }
   };
 

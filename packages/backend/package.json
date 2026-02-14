@@ -1,6 +1,6 @@
 {
   "name": "@deployy/backend",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Deployy Panel backend API server",
   "license": "AGPL-3.0",
   "author": "MillerSpil",

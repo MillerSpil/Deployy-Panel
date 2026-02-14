@@ -10,7 +10,9 @@ import { ServerScheduleManager } from '@/components/servers/ServerScheduleManage
 import { ServerUpdateManager } from '@/components/servers/ServerUpdateManager';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/common/Button';
+import { Modal } from '@/components/common/Modal';
 import { useSocket } from '@/hooks/useSocket';
+import { useToast } from '@/hooks/useToast';
 import { hasServerPermissionLevel } from '@/hooks/usePermissions';
 import type { ServerWithPermissions, ServerStatus } from '@deployy/shared';
 
@@ -25,6 +27,8 @@ export function ServerPage() {
   const [activeTab, setActiveTab] = useState<TabType>('console');
   const [actionLoading, setActionLoading] = useState<'start' | 'stop' | 'restart' | 'delete' | null>(null);
   const socket = useSocket();
+  const { addToast } = useToast();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Permission level helpers
   const userLevel = server?.userPermissionLevel;
@@ -74,8 +78,8 @@ export function ServerPage() {
       setActionLoading('start');
       await serversApi.start(id);
       fetchServer();
-    } catch {
-      // Error handled by API client (5xx logged, 4xx shown in UI)
+    } catch (err) {
+      addToast('error', err instanceof Error ? err.message : 'Failed to start server');
     } finally {
       setActionLoading(null);
     }
@@ -87,8 +91,8 @@ export function ServerPage() {
       setActionLoading('stop');
       await serversApi.stop(id);
       fetchServer();
-    } catch {
-      // Error handled by API client (5xx logged, 4xx shown in UI)
+    } catch (err) {
+      addToast('error', err instanceof Error ? err.message : 'Failed to stop server');
     } finally {
       setActionLoading(null);
     }
@@ -100,8 +104,8 @@ export function ServerPage() {
       setActionLoading('restart');
       await serversApi.restart(id);
       fetchServer();
-    } catch {
-      // Error handled by API client (5xx logged, 4xx shown in UI)
+    } catch (err) {
+      addToast('error', err instanceof Error ? err.message : 'Failed to restart server');
     } finally {
       setActionLoading(null);
     }
@@ -109,14 +113,14 @@ export function ServerPage() {
 
   const handleDelete = async () => {
     if (!id || actionLoading) return;
-    if (!confirm('Are you sure you want to delete this server?')) return;
 
     try {
       setActionLoading('delete');
+      setIsDeleteModalOpen(false);
       await serversApi.delete(id);
       navigate('/');
-    } catch {
-      // Error handled by API client (5xx logged, 4xx shown in UI)
+    } catch (err) {
+      addToast('error', err instanceof Error ? err.message : 'Failed to delete server');
       setActionLoading(null);
     }
   };
@@ -226,7 +230,7 @@ export function ServerPage() {
           )}
           {canDelete && (
             <Button
-              onClick={handleDelete}
+              onClick={() => setIsDeleteModalOpen(true)}
               variant="danger"
               className="w-full sm:w-auto sm:ml-auto min-w-[80px]"
               disabled={actionLoading !== null}
@@ -349,6 +353,29 @@ export function ServerPage() {
       {activeTab === 'access' && isOwner && (
         <ServerAccessManager serverId={server.id} isOwner={isOwner} />
       )}
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Server"
+      >
+        <p className="text-slate-300 mb-4">
+          Are you sure you want to delete <strong className="text-slate-100">{server.name}</strong>?
+        </p>
+        <div className="bg-red-900/50 border border-red-500 rounded-lg p-3 mb-4">
+          <p className="text-red-300 text-sm">
+            This will permanently delete the server and all its files. This action cannot be undone.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)} className="flex-1">
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete} className="flex-1">
+            Delete
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

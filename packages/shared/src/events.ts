@@ -1,4 +1,4 @@
-import type { PerformanceMetrics, HytaleDownloadStatus, MinecraftDownloadStatus, UpdateStatus, EnvMergeResult } from './types';
+import type { PerformanceMetrics, HytaleDownloadStatus, MinecraftDownloadStatus, UpdateStatus, EnvMergeResult, BackupRestoreStage } from './types';
 
 export interface ClientToServerEvents {
   'subscribe:server': (data: { serverId: string }) => void;
@@ -34,6 +34,11 @@ export interface ServerToClientEvents {
     message: string;
     progress?: number;
     envChanges?: EnvMergeResult;
+  }) => void;
+  'backup:restore:progress': (data: {
+    serverId: string;
+    stage: BackupRestoreStage;
+    message: string;
   }) => void;
   error: (data: { message: string; code?: string }) => void;
 }

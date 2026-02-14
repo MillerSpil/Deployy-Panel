@@ -24,6 +24,15 @@ export type MinecraftDownloadStatus =
   | 'completed'
   | 'error';
 
+// Backup restore progress stages
+export type BackupRestoreStage = 'validating' | 'extracting' | 'replacing' | 'completed' | 'error';
+
+export interface BackupRestoreStatus {
+  serverId: string;
+  stage: BackupRestoreStage;
+  message: string;
+}
+
 export interface Server {
   id: string;
   name: string;

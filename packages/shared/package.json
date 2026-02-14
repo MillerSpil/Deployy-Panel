@@ -1,6 +1,6 @@
 {
   "name": "@deployy/shared",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Shared types and schemas for Deployy Panel",
   "license": "AGPL-3.0",
   "author": "MillerSpil",

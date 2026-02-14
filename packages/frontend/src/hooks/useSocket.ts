@@ -36,3 +36,42 @@ export function useSocket() {
 
   return socket;
 }
+
+export type SocketStatus = 'connected' | 'disconnected' | 'reconnecting';
+
+export function useSocketStatus(): SocketStatus {
+  const { user } = useAuth();
+  const [status, setStatus] = useState<SocketStatus>(
+    globalSocket?.connected ? 'connected' : 'disconnected'
+  );
+
+  useEffect(() => {
+    if (!user || !globalSocket) {
+      setStatus('disconnected');
+      return;
+    }
+
+    const socket = globalSocket;
+
+    const onConnect = () => setStatus('connected');
+    const onDisconnect = () => setStatus('disconnected');
+    const onReconnectAttempt = () => setStatus('reconnecting');
+
+    // Set initial status
+    setStatus(socket.connected ? 'connected' : 'disconnected');
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.io.on('reconnect_attempt', onReconnectAttempt);
+    socket.io.on('reconnect', onConnect);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.io.off('reconnect_attempt', onReconnectAttempt);
+      socket.io.off('reconnect', onConnect);
+    };
+  }, [user]);
+
+  return status;
+}

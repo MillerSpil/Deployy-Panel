@@ -1,6 +1,7 @@
 import React from 'react';
 import { Header } from './Header';
 import { UpdateBanner } from '@/components/update/UpdateBanner';
+import { ConnectionStatus } from '@/components/common/ConnectionStatus';
 import { UpdateProgressModal } from '@/components/update/UpdateProgressModal';
 import { useUpdate } from '@/contexts/UpdateContext';
 
@@ -14,6 +15,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col">
       <UpdateBanner />
+      <ConnectionStatus />
       <Header />
       <main className="container mx-auto px-4 py-4 sm:py-8 flex-1">{children}</main>
       <footer className="bg-slate-800 border-t border-slate-700 py-4">

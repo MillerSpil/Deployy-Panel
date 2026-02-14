@@ -1,10 +1,11 @@
 import { PrismaClient } from '@prisma/client';
+import { EventEmitter } from 'node:events';
 import fs from 'node:fs/promises';
 import { createWriteStream, createReadStream } from 'node:fs';
 import path from 'node:path';
 import archiver from 'archiver';
 import unzipper from 'unzipper';
-import type { Backup } from '@deployy/shared';
+import type { Backup, BackupRestoreStage } from '@deployy/shared';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -13,8 +14,10 @@ interface BackupResult {
   skippedFiles: string[];
 }
 
-export class BackupService {
-  constructor(private prisma: PrismaClient) {}
+export class BackupService extends EventEmitter {
+  constructor(private prisma: PrismaClient) {
+    super();
+  }
 
   private getBackupsDir(server: { path: string; backupPath: string | null }): string {
     return server.backupPath || path.join(server.path, 'backups');
@@ -131,6 +134,10 @@ export class BackupService {
     logger.info('Backup record deleted', { backupId: id });
   }
 
+  private emitRestoreProgress(serverId: string, stage: BackupRestoreStage, message: string) {
+    this.emit('restore:progress', { serverId, stage, message });
+  }
+
   async restoreBackup(id: string): Promise<void> {
     const backup = await this.prisma.backup.findUnique({
       where: { id },
@@ -149,6 +156,7 @@ export class BackupService {
     }
 
     const serverPath = backup.server.path;
+    const serverId = backup.serverId;
     const backupsDir = this.getBackupsDir(backup.server);
     const backupsDirName = path.basename(backupsDir);
     const backupsIsInsideServer = backupsDir.startsWith(serverPath);
@@ -156,14 +164,17 @@ export class BackupService {
     logger.info('Restoring backup', { backupId: id, serverPath });
 
     // SAFETY: Validate zip file can be opened before deleting anything
+    this.emitRestoreProgress(serverId, 'validating', 'Validating backup file...');
     try {
       await this.validateZipFile(backup.path);
     } catch (err) {
       logger.error('Backup file is corrupted or invalid', { backupId: id, path: backup.path, error: err });
+      this.emitRestoreProgress(serverId, 'error', 'Backup file is corrupted');
       throw new AppError(400, 'Backup file is corrupted and cannot be restored. Please delete this backup and create a new one.');
     }
 
     // Extract to a temporary directory first
+    this.emitRestoreProgress(serverId, 'extracting', 'Extracting backup...');
     const tempDir = path.join(serverPath, '_restore_temp_' + Date.now());
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -172,10 +183,12 @@ export class BackupService {
       // Clean up temp dir on failure
       await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
       logger.error('Failed to extract backup to temp directory', { error: err });
+      this.emitRestoreProgress(serverId, 'error', 'Failed to extract backup');
       throw new AppError(500, 'Failed to extract backup. The backup file may be corrupted.');
     }
 
     // Now that extraction succeeded, delete old server files
+    this.emitRestoreProgress(serverId, 'replacing', 'Replacing server files...');
     const entries = await fs.readdir(serverPath, { withFileTypes: true });
     for (const entry of entries) {
       // Skip backups folder if it's inside the server directory
@@ -198,6 +211,7 @@ export class BackupService {
     // Clean up temp directory
     await fs.rm(tempDir, { recursive: true, force: true });
 
+    this.emitRestoreProgress(serverId, 'completed', 'Backup restored successfully');
     logger.info('Backup restored', { backupId: id });
   }
 

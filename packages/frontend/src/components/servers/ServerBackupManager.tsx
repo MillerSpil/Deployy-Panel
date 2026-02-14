@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { backupsApi } from '@/api/backups';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
-import type { Backup, ServerStatus } from '@deployy/shared';
+import { useSocket } from '@/hooks/useSocket';
+import type { Backup, ServerStatus, BackupRestoreStage } from '@deployy/shared';
 
 interface ServerBackupManagerProps {
   serverId: string;
@@ -34,7 +35,10 @@ export function ServerBackupManager({ serverId, serverStatus }: ServerBackupMana
   const [deleting, setDeleting] = useState<Backup | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [restoringInProgress, setRestoringInProgress] = useState(false);
+  const [restoreStage, setRestoreStage] = useState<BackupRestoreStage | null>(null);
+  const [restoreMessage, setRestoreMessage] = useState('');
   const [deletingInProgress, setDeletingInProgress] = useState(false);
+  const socket = useSocket();
 
   const fetchBackups = async () => {
     try {
@@ -54,6 +58,21 @@ export function ServerBackupManager({ serverId, serverStatus }: ServerBackupMana
   useEffect(() => {
     fetchBackups();
   }, [serverId]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRestoreProgress = (data: { serverId: string; stage: BackupRestoreStage; message: string }) => {
+      if (data.serverId !== serverId) return;
+      setRestoreStage(data.stage);
+      setRestoreMessage(data.message);
+    };
+
+    socket.on('backup:restore:progress', handleRestoreProgress);
+    return () => {
+      socket.off('backup:restore:progress', handleRestoreProgress);
+    };
+  }, [socket, serverId]);
 
   const handleCreate = async (name?: string) => {
     try {
@@ -76,6 +95,8 @@ export function ServerBackupManager({ serverId, serverStatus }: ServerBackupMana
     if (!restoring) return;
     try {
       setRestoringInProgress(true);
+      setRestoreStage(null);
+      setRestoreMessage('');
       setError(null);
       await backupsApi.restore(serverId, restoring.id);
       setRestoring(null);
@@ -84,6 +105,7 @@ export function ServerBackupManager({ serverId, serverStatus }: ServerBackupMana
       setError(err instanceof Error ? err.message : 'Failed to restore backup');
     } finally {
       setRestoringInProgress(false);
+      setRestoreStage(null);
     }
   };
 
@@ -261,8 +283,8 @@ export function ServerBackupManager({ serverId, serverStatus }: ServerBackupMana
             <div className="flex justify-center mb-4">
               <SpinnerLarge />
             </div>
-            <p className="text-slate-300">Restoring backup...</p>
-            <p className="text-slate-500 text-sm mt-2">This may take a moment</p>
+            <p className="text-slate-300 mb-4">{restoreMessage || 'Restoring backup...'}</p>
+            <RestoreProgressSteps stage={restoreStage} />
           </div>
         ) : (
           <>
@@ -478,6 +500,43 @@ function BackupSettingsModal({
         </div>
       </form>
     </Modal>
+  );
+}
+
+const RESTORE_STAGES: { key: BackupRestoreStage; label: string }[] = [
+  { key: 'validating', label: 'Validate' },
+  { key: 'extracting', label: 'Extract' },
+  { key: 'replacing', label: 'Replace' },
+  { key: 'completed', label: 'Done' },
+];
+
+function RestoreProgressSteps({ stage }: { stage: BackupRestoreStage | null }) {
+  const currentIndex = stage ? RESTORE_STAGES.findIndex((s) => s.key === stage) : -1;
+
+  return (
+    <div className="flex items-center justify-center gap-2">
+      {RESTORE_STAGES.map((s, i) => {
+        const isActive = i === currentIndex;
+        const isCompleted = i < currentIndex;
+        const color = isActive
+          ? 'bg-primary-500'
+          : isCompleted
+            ? 'bg-green-500'
+            : 'bg-slate-600';
+
+        return (
+          <div key={s.key} className="flex items-center gap-2">
+            <div className="flex flex-col items-center">
+              <div className={`w-3 h-3 rounded-full ${color}`} />
+              <span className="text-xs text-slate-400 mt-1">{s.label}</span>
+            </div>
+            {i < RESTORE_STAGES.length - 1 && (
+              <div className={`w-6 h-0.5 mb-4 ${isCompleted ? 'bg-green-500' : 'bg-slate-600'}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

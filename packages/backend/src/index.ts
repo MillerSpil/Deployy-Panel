@@ -103,6 +103,11 @@ async function main() {
     io.emit('update:progress', progress);
   });
 
+  // Wire up backup restore progress events to WebSocket
+  backupService.on('restore:progress', (data: { serverId: string; stage: string; message: string }) => {
+    io.to(`server:${data.serverId}`).emit('backup:restore:progress', data as any);
+  });
+
   // SECURITY: Configure helmet with Content Security Policy
   app.use(
     helmet({

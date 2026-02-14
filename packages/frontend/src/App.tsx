@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UpdateProvider } from './contexts/UpdateContext';
+import { ToastProvider } from './contexts/ToastContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { ToastContainer } from './components/common/Toast';
 import { Layout } from './components/layout/Layout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { DashboardPage } from './pages/DashboardPage';
@@ -100,11 +103,16 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AuthProvider>
-        <UpdateProvider>
-          <AppRoutes />
-        </UpdateProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <ToastProvider>
+          <AuthProvider>
+            <UpdateProvider>
+              <AppRoutes />
+            </UpdateProvider>
+          </AuthProvider>
+          <ToastContainer />
+        </ToastProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

@@ -123,6 +123,7 @@ export function ServerConsole({ serverId, canSendCommands = true }: ServerConsol
             onChange={(e) => setCommand(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a command (e.g., /auth login)..."
+            aria-label="Server console command input"
             className="flex-1 bg-gray-800 text-green-400 font-mono text-sm px-4 py-3 rounded-bl-lg border-t border-gray-700 focus:outline-none focus:ring-1 focus:ring-green-500"
           />
           <button
