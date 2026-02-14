@@ -44,10 +44,8 @@ export const logger = winston.createLogger({
   ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.combine(winston.format.colorize(), consoleFormat),
-    })
-  );
-}
+logger.add(
+  new winston.transports.Console({
+    format: winston.format.combine(winston.format.colorize(), consoleFormat),
+  })
+);

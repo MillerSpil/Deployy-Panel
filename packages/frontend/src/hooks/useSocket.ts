@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import type { ClientToServerEvents, ServerToClientEvents } from '@deployy/shared';
 import { useAuth } from './useAuth';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 
 let globalSocket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
@@ -25,7 +25,7 @@ export function useSocket() {
     }
 
     if (!globalSocket) {
-      globalSocket = io(SOCKET_URL, {
+      globalSocket = io(SOCKET_URL ?? window.location.origin, {
         withCredentials: true,
       });
     }

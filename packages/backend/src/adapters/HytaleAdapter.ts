@@ -119,20 +119,19 @@ export class HytaleAdapter extends BaseAdapter {
       `-Xms${ramStr}`,
       `-Xmx${ramStr}`,
       '-XX:+UseG1GC',
-      '-XX:AOTCache=HytaleServer.aot',
       '-jar',
-      jarPath,
+      './Server/HytaleServer.jar',
       '--assets',
-      assetsPath,
+      'Assets.zip',
     ];
 
     this.emitLog(`Executing: ${javaCmd} ${args.join(' ')}`);
     logger.info(`Command: ${javaCmd} ${args.join(' ')}`);
 
     try {
-      // Run from Server/ subfolder so AOT cache works correctly
+      // Run from server root so world data (universe/) is found correctly
       this.process = spawn(javaCmd, args, {
-        cwd: serverSubfolder,
+        cwd: this.server.path,
         shell: false,
         stdio: ['pipe', 'pipe', 'pipe'],
       });

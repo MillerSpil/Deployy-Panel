@@ -45,6 +45,15 @@ async function main() {
   await prisma.$connect();
   logger.info('Database connected');
 
+  // Reset stale server statuses from previous run
+  const staleCount = await prisma.server.updateMany({
+    where: { status: { in: ['running', 'starting', 'stopping'] } },
+    data: { status: 'stopped' },
+  });
+  if (staleCount.count > 0) {
+    logger.info(`Reset ${staleCount.count} stale server(s) to stopped`);
+  }
+
   // Initialize services
   const serverService = new ServerService(prisma, SERVERS_BASE_PATH);
   const authService = new AuthService(prisma);
@@ -68,6 +77,7 @@ async function main() {
   await schedulerService.initialize();
 
   const app = express();
+  app.set('trust proxy', 1);
   const httpServer = createServer(app);
 
   // Support multiple frontend ports for development

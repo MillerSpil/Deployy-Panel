@@ -13,6 +13,7 @@ import { HytaleDownloadService } from './HytaleDownloadService.js';
 export class ServerService {
   private adapters: Map<string, BaseAdapter> = new Map();
   private activeDownloads: Map<string, HytaleDownloadService> = new Map();
+  private pendingOperations: Set<string> = new Set();
   private pathValidator: PathValidator;
   private io: SocketServer<ClientToServerEvents, ServerToClientEvents> | null = null;
 
@@ -73,7 +74,9 @@ export class ServerService {
     flavor?: string;
     ram?: number;
   }): Promise<Server> {
-    const serverPath = data.path;
+    const serverPath = path.isAbsolute(data.path)
+      ? data.path
+      : path.join(this.serversBasePath, data.path);
 
     if (serverPath.includes('..')) {
       throw new AppError(400, 'Invalid path: directory traversal not allowed');
@@ -311,21 +314,35 @@ export class ServerService {
   }
 
   async startServer(id: string): Promise<void> {
-    const server = await this.getServer(id);
-    if (!server) throw new Error('Server not found');
+    if (this.pendingOperations.has(id)) {
+      throw new AppError(409, 'Server is already processing a request');
+    }
+    this.pendingOperations.add(id);
+    try {
+      const server = await this.getServer(id);
+      if (!server) throw new Error('Server not found');
 
-    const adapter = this.getOrCreateAdapter(server);
-    await adapter.start();
+      const adapter = this.getOrCreateAdapter(server);
+      await adapter.start();
 
-    await this.prisma.server.update({
-      where: { id },
-      data: { status: 'running' },
-    });
+      await this.prisma.server.update({
+        where: { id },
+        data: { status: 'running' },
+      });
+    } finally {
+      this.pendingOperations.delete(id);
+    }
   }
 
   async stopServer(id: string): Promise<void> {
     const adapter = this.adapters.get(id);
-    if (!adapter) throw new Error('Server not running');
+    if (!adapter || !adapter.isRunning()) {
+      await this.prisma.server.update({
+        where: { id },
+        data: { status: 'stopped' },
+      });
+      return;
+    }
 
     await adapter.stop();
 

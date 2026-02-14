@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const SERVER_NAME_REGEX = /^[a-zA-Z0-9\s\-_]+$/;
-const SERVER_PATH_REGEX = /^[a-zA-Z]:\\[\w\s\-\\]+$|^\/[\w\s\-\/]+$/;
+const SERVER_PATH_REGEX = /^[a-zA-Z]:\\[\w\s\-\\]+$|^\/[\w\s\-\/]+$|^[\w][\w\s\-]*$/;
 const PORT_MIN = 1024;
 const PORT_MAX = 65535;
 

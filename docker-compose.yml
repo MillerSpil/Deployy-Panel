@@ -1,14 +1,21 @@
 services:
   deployy-panel:
+    build: .
     image: deployy-panel
     container_name: deployy-panel
     ports:
       - "3000:3000"
+      # Minecraft — add more ports for additional servers (e.g. 25566:25566)
+      - "25565:25565"
+      # Hytale (QUIC over UDP)
+      - "5520:5520/udp"
     volumes:
       - ./data:/data
+      - ./servers:/opt/deployy-servers
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/data/deployy.db
+      - SERVERS_BASE_PATH=/opt/deployy-servers
       - DOCKER_CONTAINER=true
     env_file:
       - .env

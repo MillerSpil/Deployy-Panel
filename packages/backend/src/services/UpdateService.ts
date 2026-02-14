@@ -265,10 +265,14 @@ This is **test mode** data. Set UPDATE_TEST_MODE=false to check real GitHub rele
 
       // Find the extracted folder (GitHub creates a folder like "MillerSpil-Deployy-Panel-abc123")
       const extractedContents = await fs.readdir(extractDir);
-      const releaseFolder = extractedContents.find(async (name) => {
+      let releaseFolder: string | undefined;
+      for (const name of extractedContents) {
         const stat = await fs.stat(path.join(extractDir, name));
-        return stat.isDirectory();
-      });
+        if (stat.isDirectory()) {
+          releaseFolder = name;
+          break;
+        }
+      }
 
       if (!releaseFolder) {
         throw new Error('Could not find extracted release folder');

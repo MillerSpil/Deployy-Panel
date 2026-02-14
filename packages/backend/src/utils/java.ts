@@ -72,6 +72,7 @@ export function findJavaPath(): string {
     // Linux/macOS common paths
     const commonPaths = [
       '/usr/bin/java',
+      '/usr/lib/jvm/java-25-openjdk/bin/java',
       '/usr/lib/jvm/java-21-openjdk/bin/java',
       '/usr/lib/jvm/java-17-openjdk/bin/java',
       '/opt/java/openjdk/bin/java',

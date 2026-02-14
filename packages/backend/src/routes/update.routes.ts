@@ -11,10 +11,10 @@ const updateSettingsSchema = z.object({
 });
 
 // SECURITY: Only allow GitHub releases from the official repository
-const ALLOWED_DOWNLOAD_ORIGINS = [
-  'https://github.com/MillerSpil/Deployy-Panel/',
-  'https://codeload.github.com/MillerSpil/Deployy-Panel/',
-  'https://api.github.com/repos/MillerSpil/Deployy-Panel/',
+const ALLOWED_URL_PATTERNS = [
+  { host: 'github.com', pathPrefix: '/MillerSpil/Deployy-Panel/' },
+  { host: 'codeload.github.com', pathPrefix: '/MillerSpil/Deployy-Panel/' },
+  { host: 'api.github.com', pathPrefix: '/repos/MillerSpil/Deployy-Panel/' },
 ];
 
 const applyUpdateSchema = z.object({
@@ -22,7 +22,17 @@ const applyUpdateSchema = z.object({
     .string()
     .url()
     .refine(
-      (url) => ALLOWED_DOWNLOAD_ORIGINS.some((origin) => url.startsWith(origin)),
+      (url) => {
+        try {
+          const parsed = new URL(url);
+          return parsed.protocol === 'https:' &&
+            ALLOWED_URL_PATTERNS.some(
+              (p) => parsed.hostname === p.host && parsed.pathname.startsWith(p.pathPrefix)
+            );
+        } catch {
+          return false;
+        }
+      },
       'Download URL must be from the official Deployy Panel GitHub repository'
     ),
   targetVersion: z.string().regex(/^\d+\.\d+\.\d+$/, 'Invalid version format'),

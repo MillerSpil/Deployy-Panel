@@ -78,7 +78,7 @@
 
 - **Node.js** 20+
 - **pnpm** 8+
-- **Java** 25+ (for Hytale servers - [Adoptium](https://adoptium.net/) recommended)
+- **Java** 17+ for Minecraft, 25+ for Hytale ([Adoptium](https://adoptium.net/) recommended)
 
 ---
 
@@ -117,38 +117,43 @@ pnpm dev
 ## Installation
 
 <details>
-<summary><strong>Docker (Recommended for Production)</strong></summary>
+<summary><strong>Docker</strong></summary>
+
+The Docker image includes Java 25 (Eclipse Temurin) so game servers run inside the container.
 
 ```bash
-# Clone the repository
 git clone https://github.com/MillerSpil/Deployy-Panel.git
 cd Deployy-Panel
 
 # Create environment file
 cp packages/backend/.env.example .env
-
-# Generate a secure JWT secret and add to .env
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-# Edit .env and set JWT_SECRET to the generated value
-# Also set NODE_ENV=production
+# Edit .env — you MUST set these:
+#   JWT_SECRET — minimum 32 characters (generate: openssl rand -hex 32)
+#   FRONTEND_URL — your domain or IP (e.g. "https://panel.example.com")
 
 # Build and start
-docker build -t deployy-panel .
-docker compose up -d
+docker compose up -d --build
 ```
 
 The panel will be available at `http://localhost:3000`
 
-**Configuration:**
-- Data persisted to `./data` directory
-- Database at `/data/deployy.db`
+**Volumes:**
+- `./data` — Database (persisted across restarts)
+- `./servers` — Game server files (maps to `/opt/deployy-servers` inside the container)
+
+**Ports:**
+- `3000` — Panel web UI
+- `25565` — Minecraft (TCP)
+- `5520` — Hytale (UDP/QUIC)
+
+Add more port mappings in `docker-compose.yml` for additional servers.
 
 **Commands:**
 ```bash
 docker compose logs -f      # View logs
 docker compose down         # Stop
 docker compose up -d        # Start
-docker build -t deployy-panel . --no-cache && docker compose up -d  # Rebuild
+docker compose up -d --build --no-cache  # Rebuild
 ```
 
 </details>
@@ -162,25 +167,27 @@ git clone https://github.com/MillerSpil/Deployy-Panel.git
 cd Deployy-Panel
 pnpm install
 
+# Build shared package (required before anything else)
+pnpm --filter @deployy/shared build
+
 # Setup backend
 cd packages/backend
 cp .env.example .env
 # Edit .env - set a secure JWT_SECRET (minimum 32 characters)
+# Set NODE_ENV=production and FRONTEND_URL to your domain/IP
 
 # Initialize database
 pnpm prisma generate
 pnpm prisma db push
 pnpm prisma db seed
+cd ../..
 
-# Build frontend
-cd ../frontend
-pnpm build
-
-# Build backend
-cd ../backend
-pnpm build
+# Build frontend and backend
+pnpm --filter @deployy/frontend build
+pnpm --filter @deployy/backend build
 
 # Start production server
+cd packages/backend
 NODE_ENV=production node dist/index.js
 ```
 
@@ -197,10 +204,13 @@ git clone https://github.com/MillerSpil/Deployy-Panel.git
 cd Deployy-Panel
 pnpm install
 
+# Build shared package (required before anything else)
+pnpm --filter @deployy/shared build
+
 # Setup backend
 cd packages/backend
 cp .env.example .env
-# Edit .env - set JWT_SECRET (can use any string for dev)
+# Edit .env - set JWT_SECRET (minimum 32 characters, generate: openssl rand -hex 32)
 
 # Initialize database
 pnpm prisma generate
@@ -231,7 +241,154 @@ Open `http://localhost:5173`
 For exposing Deployy Panel to the internet, you need HTTPS and a reverse proxy.
 
 <details>
-<summary><strong>Windows - Caddy (Recommended)</strong></summary>
+<summary><strong>Linux - Full Bare Metal Guide</strong></summary>
+
+#### 1. Install Dependencies
+
+```bash
+# Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+sudo apt install -y nodejs
+
+# pnpm
+sudo corepack enable
+sudo corepack prepare pnpm@latest --activate
+
+# Java 25+ (required for Hytale — https://adoptium.net/)
+# Verify: java --version
+```
+
+#### 2. Create a Dedicated User
+
+```bash
+sudo useradd -r -m -d /home/deployy -s /bin/bash deployy
+sudo groupadd deployy-devs
+sudo usermod -aG deployy-devs $(whoami)
+sudo mkdir -p /opt/deployy-panel /opt/deployy-servers
+sudo chown deployy:deployy-devs /opt/deployy-panel /opt/deployy-servers
+sudo chmod 2775 /opt/deployy-panel /opt/deployy-servers
+```
+
+#### 3. Clone and Build
+
+```bash
+sudo -u deployy git clone https://github.com/MillerSpil/Deployy-Panel.git /opt/deployy-panel
+cd /opt/deployy-panel
+sudo -u deployy pnpm install
+sudo -u deployy pnpm --filter @deployy/shared build
+cd packages/backend
+sudo -u deployy pnpm prisma generate
+sudo -u deployy pnpm prisma db push
+sudo -u deployy pnpm prisma db seed
+cd ../..
+sudo -u deployy pnpm --filter @deployy/frontend build
+sudo -u deployy pnpm --filter @deployy/backend build
+```
+
+#### 4. Configure Environment
+
+```bash
+sudo -u deployy cp packages/backend/.env.example packages/backend/.env
+sudo -u deployy nano packages/backend/.env
+```
+
+```env
+DATABASE_URL="file:./deployy.db"
+PORT=3000
+NODE_ENV=production
+FRONTEND_URL="https://your-domain-or-ip"
+SERVERS_BASE_PATH="/opt/deployy-servers"
+JWT_SECRET="paste-output-of-openssl-rand-hex-32"
+JWT_EXPIRATION="24h"
+LOG_LEVEL="info"
+TELEMETRY_ENABLED=true
+```
+
+Generate a JWT secret: `openssl rand -hex 32`
+
+#### 5. Create systemd Service
+
+```bash
+# Create startup script
+sudo tee /opt/deployy-panel/start.sh > /dev/null << 'EOF'
+#!/bin/bash
+cd /opt/deployy-panel/packages/backend
+set -a
+source .env
+set +a
+exec node dist/index.js
+EOF
+sudo chown deployy:deployy-devs /opt/deployy-panel/start.sh
+sudo chmod 750 /opt/deployy-panel/start.sh
+
+# Create service
+sudo tee /etc/systemd/system/deployy-panel.service > /dev/null << 'EOF'
+[Unit]
+Description=Deployy Panel
+After=network.target
+
+[Service]
+Type=simple
+User=deployy
+Group=deployy-devs
+WorkingDirectory=/opt/deployy-panel/packages/backend
+ExecStart=/opt/deployy-panel/start.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable deployy-panel
+sudo systemctl start deployy-panel
+```
+
+#### 6. Reverse Proxy (Caddy)
+
+```bash
+# Install Caddy — https://caddyserver.com/docs/install
+sudo apt install -y caddy
+```
+
+**With a domain:**
+```
+panel.yourdomain.com {
+    reverse_proxy localhost:3000
+}
+```
+
+**With just an IP (self-signed cert):**
+```
+https://YOUR.IP.HERE {
+    tls internal
+    reverse_proxy localhost:3000
+}
+```
+
+```bash
+sudo systemctl restart caddy
+```
+
+#### 7. Firewall
+
+```bash
+sudo ufw allow 22/tcp     # SSH
+sudo ufw allow 443/tcp    # HTTPS (panel)
+sudo ufw allow 5520/udp   # Hytale (QUIC)
+sudo ufw allow 25565/tcp  # Minecraft (if needed)
+sudo ufw enable
+```
+
+#### 8. First Login
+
+Open `https://your-domain-or-ip` in your browser. The first registered user becomes admin.
+
+</details>
+
+<details>
+<summary><strong>Windows - Caddy</strong></summary>
 
 Caddy automatically handles SSL certificates.
 
@@ -264,6 +421,9 @@ panel.yourdomain.com {
 # Allow Hytale game server (UDP)
 New-NetFirewallRule -DisplayName "Hytale Server" -Direction Inbound -Protocol UDP -LocalPort 5520 -Action Allow
 
+# Allow Minecraft server (TCP)
+New-NetFirewallRule -DisplayName "Minecraft Server" -Direction Inbound -Protocol TCP -LocalPort 25565 -Action Allow
+
 # Allow HTTP/HTTPS
 New-NetFirewallRule -DisplayName "HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
 New-NetFirewallRule -DisplayName "HTTPS" -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow
@@ -272,26 +432,7 @@ New-NetFirewallRule -DisplayName "HTTPS" -Direction Inbound -Protocol TCP -Local
 </details>
 
 <details>
-<summary><strong>Linux - Caddy (Recommended)</strong></summary>
-
-1. **Install Caddy** - https://caddyserver.com/docs/install
-
-2. **Create Caddyfile:**
-```
-panel.yourdomain.com {
-    reverse_proxy localhost:3000
-}
-```
-
-3. **Start Caddy:**
-```bash
-sudo systemctl enable --now caddy
-```
-
-</details>
-
-<details>
-<summary><strong>Linux - Nginx + Certbot</strong></summary>
+<summary><strong>Linux - Nginx + Certbot (Alternative)</strong></summary>
 
 1. **Install:**
 ```bash
@@ -326,23 +467,6 @@ sudo systemctl restart nginx
 
 </details>
 
-<details>
-<summary><strong>Linux - Firewall (UFW)</strong></summary>
-
-```bash
-sudo ufw allow 5520/udp  # Hytale game server
-sudo ufw allow 80/tcp    # HTTP
-sudo ufw allow 443/tcp   # HTTPS
-```
-
-</details>
-
-**After Setup:** Update your `.env`:
-```env
-NODE_ENV=production
-FRONTEND_URL="https://panel.yourdomain.com"
-```
-
 ---
 
 ## Configuration
@@ -363,9 +487,9 @@ NODE_ENV=development
 # Frontend URL (dev only - for CORS)
 FRONTEND_URL="http://localhost:5173"
 
-# Game server storage location
-SERVERS_BASE_PATH="C:\\DeployyServers"  # Windows
-# SERVERS_BASE_PATH="/opt/deployy/servers"  # Linux
+# Game server storage (relative to backend, or absolute path)
+SERVERS_BASE_PATH="./servers"
+# SERVERS_BASE_PATH="/opt/deployy-servers"  # Linux absolute example
 
 # Authentication (REQUIRED)
 JWT_SECRET="your-secret-key-minimum-32-characters-here"
@@ -385,9 +509,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 <details>
 <summary><strong>Server Storage Paths</strong></summary>
 
-Game servers are installed to:
-- **Windows:** `C:\DeployyServers\{server-name}`
-- **Linux:** `/opt/deployy/servers/{server-name}`
+When creating a server, the path can be a simple folder name (e.g. `my-server`) or an absolute path. Relative names are created inside `SERVERS_BASE_PATH`:
+
+- **Default:** `./servers/{server-name}` (relative to backend)
+- **Linux production:** `/opt/deployy-servers/{server-name}`
+- **Docker:** `/opt/deployy-servers/{server-name}` (mapped to `./servers` on host)
 
 Change with `SERVERS_BASE_PATH` in your `.env` file.
 
@@ -399,21 +525,59 @@ Change with `SERVERS_BASE_PATH` in your `.env` file.
 
 1. Open the panel in your browser
 2. Create an admin account (first user gets Admin role)
-3. Create a Hytale server with "Auto-download server files" enabled
-4. Authenticate with your Hytale account when prompted
+3. Create a server:
+   - **Hytale:** Enable "Auto-download server files" and authenticate with your Hytale account
+   - **Minecraft:** Select Vanilla or Paper, pick a version, and the JAR downloads automatically
 
 ---
 
 ## Hytale Server Management
 
 <details>
-<summary><strong>Creating a Server</strong></summary>
+<summary><strong>Creating a New Server</strong></summary>
 
 1. Click "Create Server" on the dashboard
 2. Enter server name and port (default: 5520)
 3. Enable "Auto-download server files"
 4. Authenticate with your Hytale account
 5. Server files download automatically
+
+</details>
+
+<details>
+<summary><strong>Migrating an Existing Server</strong></summary>
+
+If you already have a Hytale server running, you can bring it into the panel without re-downloading:
+
+1. **Stop your current server**
+
+2. **Move files into the panel's servers directory:**
+```bash
+sudo mv /path/to/your/hytale-server /opt/deployy-servers/my-server
+sudo chown -R deployy:deployy-devs /opt/deployy-servers/my-server
+```
+
+3. **Create the server in the panel:**
+   - Name: your server name
+   - Game: Hytale
+   - Path: `my-server` (or the full absolute path)
+   - Port: 5520
+   - Auto-download: **No**
+
+4. **Start from the panel** — your world data, plugins, mods, and config will be preserved.
+
+Your server directory should look like:
+```
+my-server/
+├── Server/
+│   └── HytaleServer.jar
+├── Assets.zip
+├── config.json
+├── universe/        # World data
+├── mods/
+├── plugins/
+└── ...
+```
 
 </details>
 
@@ -523,9 +687,10 @@ More flavors (Forge, Fabric, Spigot, etc.) are planned for future releases.
 <details>
 <summary><strong>Rate Limits</strong></summary>
 
-- Auth endpoints: 5 requests per 15 minutes
-- File operations: 30 requests per minute
-- Backup operations: 10 requests per minute
+- Auth endpoints: 5 attempts per 15 minutes
+- API (general): 1000 requests per 15 minutes
+- File operations: 30 per minute (uploads/downloads: 10 per minute)
+- Backup creation: 5 per hour (downloads: 10 per hour)
 
 </details>
 
@@ -658,7 +823,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 <details>
 <summary><strong>Server won't start</strong></summary>
 
-- Check Java 25+ is installed: `java -version`
+- Check Java 25+ is installed: `java --version`
 - Ensure the port isn't in use
 - Check server logs in the console tab
 
@@ -670,6 +835,25 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - Hytale uses UDP port 5520, not TCP
 - Check your firewall allows UDP traffic
 - Verify the port in server settings
+
+</details>
+
+<details>
+<summary><strong>Console not updating / can't send commands</strong></summary>
+
+WebSocket connection may be failing. Check browser console for errors.
+- If behind a reverse proxy, make sure it supports WebSocket upgrades (Caddy does this automatically)
+- Verify `FRONTEND_URL` in `.env` matches the URL you access the panel from
+
+</details>
+
+<details>
+<summary><strong>Server stuck in "Running" after panel restart</strong></summary>
+
+The panel automatically resets stale server statuses on startup. If you're on an older version, manually reset:
+```bash
+sqlite3 path/to/deployy.db "UPDATE Server SET status='stopped' WHERE status='running';"
+```
 
 </details>
 

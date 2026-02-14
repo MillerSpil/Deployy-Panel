@@ -1,4 +1,11 @@
+FROM eclipse-temurin:25-jdk-noble AS java
+
 FROM node:20-slim
+
+# Copy Java from Temurin image (detected at /opt/java/openjdk/bin/java)
+COPY --from=java /opt/java/openjdk /opt/java/openjdk
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*

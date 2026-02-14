@@ -17,7 +17,7 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
   const [formData, setFormData] = useState({
     name: 'My Hytale Server',
     gameType: 'hytale' as GameType,
-    path: 'C:\\DeployyServers\\hytale-server',
+    path: 'hytale-server',
     port: 5520,
     maxPlayers: 100,
     autoDownload: false,
@@ -64,7 +64,7 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
       setFormData((prev) => ({
         ...prev,
         name: prev.name === 'My Hytale Server' ? 'My Minecraft Server' : prev.name,
-        path: prev.path === 'C:\\DeployyServers\\hytale-server' ? 'C:\\DeployyServers\\minecraft-server' : prev.path,
+        path: prev.path === 'hytale-server' ? 'minecraft-server' : prev.path,
         port: 25565,
         maxPlayers: 20,
         ram: 4,
@@ -73,7 +73,7 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
       setFormData((prev) => ({
         ...prev,
         name: prev.name === 'My Minecraft Server' ? 'My Hytale Server' : prev.name,
-        path: prev.path === 'C:\\DeployyServers\\minecraft-server' ? 'C:\\DeployyServers\\hytale-server' : prev.path,
+        path: prev.path === 'minecraft-server' ? 'hytale-server' : prev.path,
         port: 5520,
         maxPlayers: 100,
         ram: 6,
@@ -130,7 +130,7 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
     setFormData({
       name: 'My Hytale Server',
       gameType: 'hytale',
-      path: 'C:\\DeployyServers\\hytale-server',
+      path: 'hytale-server',
       port: 5520,
       maxPlayers: 100,
       autoDownload: false,
@@ -173,12 +173,17 @@ export function CreateServerModal({ isOpen, onClose, onCreated }: CreateServerMo
           required
         />
 
-        <Input
-          label="Server Path"
-          value={formData.path}
-          onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-          required
-        />
+        <div className="mb-4">
+          <Input
+            label="Server Path"
+            value={formData.path}
+            onChange={(e) => setFormData({ ...formData, path: e.target.value })}
+            required
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Folder name (e.g. my-server) or absolute path. Relative paths are created inside the servers directory.
+          </p>
+        </div>
 
         <div className="mb-4">
           <label className="block text-sm font-medium text-slate-300 mb-1">Game</label>
